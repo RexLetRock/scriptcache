@@ -1,0 +1,11 @@
+// Package demo offers a demonstration.
+// These comment lines will end up in the generated code.
+package message
+
+type Message struct {
+	MessageId uint64
+	GroupId   uint64
+	Data      binary
+	Flags     uint64
+	CreatedAt uint64
+}

@@ -1,2 +1,4 @@
+github.com/RexLetRock/zlib v0.0.0-20220824093749-9d1b792eb9ea h1:GRvIMc563rmo/HZ1RLLa16s/D553R6sKzBuBjuEIQzo=
+github.com/RexLetRock/zlib v0.0.0-20220824093749-9d1b792eb9ea/go.mod h1:hdIU8MsrvFmqr3QFKHQTOUxnSHPnkMfLAP0J04ug4tA=
 github.com/gorilla/websocket v1.5.0 h1:PPwGk2jz7EePpoHN/+ClbZu8SPxiqlu12wZP/3sWmnc=
 github.com/gorilla/websocket v1.5.0/go.mod h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/adAjf1fMHhE=

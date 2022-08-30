@@ -1,21 +1,20 @@
-// Copyright 2015 The Gorilla WebSocket Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
-
-//go:build ignore
-// +build ignore
-
 package main
 
 import (
+	"bufio"
 	"flag"
+	"fmt"
 	"log"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 
+	"github.com/RexLetRock/zlib/zcount"
 	"github.com/gorilla/websocket"
 )
+
+const NCpu = 20
 
 var addr = flag.String("addr", "localhost:8080", "http service address")
 
@@ -29,20 +28,30 @@ func main() {
 	flag.Parse()
 	log.SetFlags(0)
 
-	// interrupt := make(chan os.Signal, 1)
-	// signal.Notify(interrupt, os.Interrupt)
+	for i := 0; i < NCpu; i++ {
+		go bench()
+	}
+	showResult()
 
+	fmt.Printf("\n\nStop with ctrl + c \n\n")
+	input := bufio.NewScanner(os.Stdin)
+	input.Scan()
+}
+
+var counter zcount.Counter
+var counterBunch = int64(1_000)
+var timeStart = time.Now().Unix()
+
+func bench() {
 	u := url.URL{Scheme: "ws", Host: *addr, Path: "/echo"}
 	log.Printf("connecting to %s", u.String())
-
 	c, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
 	exitAtErr(err)
-
 	defer c.Close()
 
 	// READ
 	done := make(chan struct{})
-	n := 0
+	n := int64(0)
 	go func() {
 		defer close(done)
 		for {
@@ -52,8 +61,8 @@ func main() {
 				return
 			} else {
 				n += 1
-				if n%10_000 == 0 {
-					log.Printf("RUN %v\n", n)
+				if n%counterBunch == 0 {
+					counter.Add(counterBunch)
 				}
 			}
 		}
@@ -64,23 +73,25 @@ func main() {
 	defer ticker.Stop()
 	func() {
 		for {
-			c.WriteMessage(websocket.TextMessage, []byte("Holla kani youwar"))
+			c.WriteMessage(websocket.TextMessage, []byte("adlsfhashdflsajdfla h aldjflajsd"))
 		}
 	}()
+}
 
-	// select {
-	// case <-done:
-	// 	return
-	// case <-interrupt:
-	// 	err := c.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
-	// 	if err != nil {
-	// 		log.Println("write close:", err)
-	// 		return
-	// 	}
-	// 	select {
-	// 	case <-done:
-	// 	case <-time.After(time.Second):
-	// 	}
-	// 	return
-	// }
+func showResult() {
+	ticker := time.NewTicker(1 * time.Second)
+	quit := make(chan struct{})
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+				timeNow := time.Now().Unix()
+				total := counter.Value()
+				fmt.Printf("COUNTER %v Msg/s - TOTAL %v msg \n", total/(timeNow-timeStart), total)
+			case <-quit:
+				ticker.Stop()
+				return
+			}
+		}
+	}()
 }
