@@ -17,7 +17,7 @@ func ClientStart() {
 	}
 
 	a := []byte("FUCK THIS SHIT IAM DONE")
-	zbench.Run(1_000_000, 20, func(i, thread int) {
+	zbench.Run(NRun, NCpu, func(i, thread int) {
 		conns[thread].Write(a)
 	})
 }
