@@ -23,7 +23,7 @@ func ClientStart() {
 	}
 
 	fmt.Println("Start Client")
-	senddata := []byte("abc")
+	senddata := []byte("a")
 	zbench.Run(NRun, NCpu, func(i, thread int) {
 		sockets[thread].Write(senddata)
 	})

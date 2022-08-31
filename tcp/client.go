@@ -16,7 +16,7 @@ func ClientStart() {
 		conns[i], _ = net.Dial("tcp", "127.0.0.1:8888")
 	}
 
-	a := []byte("abc")
+	a := []byte("a")
 	zbench.Run(NRun, NCpu, func(i, thread int) {
 		conns[thread].Write(a)
 	})
