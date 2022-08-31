@@ -5,16 +5,46 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"log"
 	"net"
 	"scriptcache/colf/message"
+	"sync"
+
+	"database/sql"
+
+	_ "github.com/go-sql-driver/mysql"
 )
 
 const ThreadPerConn = 5
 const countSize = 5_00_000
+const connStr = "developer:password@tcp(127.0.0.1:4000)/imsystem?parseTime=true"
 
 var pCounter = PerformanceCounterCreate(countSize, 0, "SERVER RUN")
+var GCache *DBCache
+
+type DBCache struct {
+	cache sync.Map
+	db    *sql.DB
+}
+
+func DBCacheCreate(dburl string) {
+	// var contexts = sync.Map{}
+	// contexts.Store(keyName, *request)
+	// cronContext, _ := contexts.Load(keyName)
+	db, err := sql.Open("mysql", dburl)
+	s := &DBCache{
+		db:    db,
+		cache: sync.Map{},
+	}
+}
 
 func ServerStart() {
+	GCache := DBCacheCreate(connStr)
+
+	if err != nil {
+		log.Fatalf("Cant connect db", err)
+	}
+
 	listener, _ := net.Listen("tcp", "0.0.0.0:8888")
 	defer listener.Close()
 	for {
@@ -59,9 +89,24 @@ func ConnHandleCreate(conn net.Conn) *ConnHandle {
 			// HANDLE PACKAGE DATA
 
 			// INSERT SQL
-
+			fmt.Printf("%v \n", m)
 			// ENCODE
-			_, _ = m.MarshalBinary()
+			// data, _ := m.MarshalBinary()
+
+			// QUERY GROUP INFO
+			_, ok := GCache.cache.Load(m.GroupId)
+			if !ok {
+				// QUERY DATABASE
+				var data []byte
+				GCache.db.QueryRow(fmt.Sprintf("SELECT message_id FROM ims_message WHERE group_id=%v ORDER BY created_at DESC LIMIT 1", m.GroupId)).Scan(&data)
+				fmt.Printf("%s \n", data)
+				GCache.cache.Store(m.GroupId, data)
+			}
+
+			// select message_id from ims_message where group_id=381870481448962 order by created_at desc limit 1;
+			// select * from ims_message where group_id=381870481448962 order by created_at desc limit 1;
+			// INSERT INTO ims_message(message_id, group_id, data, flags, created_at) VALUES(?, ?, ?, 0, ?)
+			// developer:password@tcp(127.0.0.1:4000)/imsystem?parseTime=true
 
 			// SEND
 			reMsg := append(msg[0:4], []byte(fmt.Sprintf("%v#\t#", binary.LittleEndian.Uint32(msg[0:4])))...)

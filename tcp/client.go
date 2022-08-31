@@ -11,8 +11,6 @@ import (
 
 	"scriptcache/colf/message"
 	"scriptcache/zcount"
-
-	"github.com/RexLetRock/zlib/zbench"
 )
 
 const NCpu = 12
@@ -140,9 +138,9 @@ func (c *TcpClient) GetMessageID(cbID uint64) uint64 {
 func ClientStart() {
 	tcpClient := NewTcpClient(Addr)
 	msg := message.Message{MessageId: 6585793445600325728, GroupId: 381870481448962, Data: []byte{0, 0}, Flags: 0, CreatedAt: 1661848717}
-	zbench.Run(20_000, 12, func(i, thread int) {
-		_ = tcpClient.SendMessage(msg)
-	})
+	// zbench.Run(1, 1, func(i, thread int) {
+	// 	_ = tcpClient.SendMessage(msg)
+	// })
 
 	fmt.Printf("RESULT %v \n", tcpClient.GetMessageID(tcpClient.SendMessage(msg)))
 }
