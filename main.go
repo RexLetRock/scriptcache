@@ -1,7 +1,7 @@
 package main
 
 import (
-	"scriptcache/tcp"
+	"scriptcache/tcpevio"
 	"time"
 )
 
@@ -10,9 +10,9 @@ func main() {
 	// go udp.ServerStart()
 	// go udp.ClientStart()
 
-	go tcp.ServerStart()
+	go tcpevio.ServerStart()
 	time.Sleep(1 * time.Second)
-	go tcp.ClientStart()
+	go tcpevio.ClientStart()
 
 	select {}
 }

@@ -29,14 +29,14 @@ func ServerStart() {
 func handleConn(conn net.Conn) {
 	defer conn.Close()
 
-	bytes := make([]byte, 10024)
+	bytes := make([]byte, 1024*10)
 	for {
-		_, err := conn.Read(bytes)
+		n, err := conn.Read(bytes)
 		if err != nil {
 			log.Println(err)
 			return
 		}
 
-		// log.Println("Received : ", string(bytes[:n]))
+		log.Println("Received : ", string(bytes[:n]))
 	}
 }

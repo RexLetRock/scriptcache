@@ -1,4 +1,4 @@
-package tcp
+package tcpevio
 
 import (
 	"net"
@@ -13,7 +13,7 @@ var conns = [NCpu]net.Conn{}
 
 func ClientStart() {
 	for i := 0; i < NCpu; i++ {
-		conns[i], _ = net.Dial("tcp", "127.0.0.1:8888")
+		conns[i], _ = net.Dial("tcp", "127.0.0.1:5000")
 	}
 
 	a := []byte("a")
