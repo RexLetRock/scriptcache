@@ -1,6 +1,9 @@
 package tcp
 
 import (
+	"bufio"
+	"io"
+	"io/ioutil"
 	"net"
 
 	"github.com/RexLetRock/zlib/zbench"
@@ -17,7 +20,18 @@ func ClientStart() {
 	}
 
 	a := []byte("How are you today :D \n")
+
+	pipeReader, pipeWriter := io.Pipe()
+	reader := bufio.NewReader(pipeReader)
+	go func() {
+		for {
+			data, _ := ioutil.ReadAll(reader)
+			conns[0].Write(data)
+		}
+	}()
+
 	zbench.Run(NRun, NCpu, func(i, thread int) {
-		conns[thread].Write(a)
+		// conns[thread].Write(a)
+		pipeWriter.Write(a)
 	})
 }
