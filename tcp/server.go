@@ -19,6 +19,7 @@ import (
 const ThreadPerConn = 5
 const countSize = 5_00_000
 const connStr = "developer:password@tcp(127.0.0.1:4000)/imsystem?parseTime=true"
+const connHost = "0.0.0.0:8888"
 const cDebug = true
 const cSnowflakeNode = 1
 const createMessageStmt = "INSERT INTO ims_message(message_id, group_id, data, flags, created_at) VALUES(?, ?, ?, 0, ?)"
@@ -49,8 +50,19 @@ func DBCacheCreate(dburl string) *DBCache {
 
 func ServerStart() {
 	GCache = DBCacheCreate(connStr)
+	listener, _ := net.Listen("tcp", connHost)
+	defer listener.Close()
+	for {
+		if conn, err := listener.Accept(); err == nil {
+			go handleConn(conn)
+		}
+	}
+}
 
-	listener, _ := net.Listen("tcp", "0.0.0.0:8888")
+func ServerStartViaOptions(dburl string, host string) {
+	GCache = DBCacheCreate(dburl)
+
+	listener, _ := net.Listen("tcp", host)
 	defer listener.Close()
 	for {
 		if conn, err := listener.Accept(); err == nil {
