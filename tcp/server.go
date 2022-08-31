@@ -1,12 +1,16 @@
 package tcp
 
 import (
+	"bufio"
 	"fmt"
+	"io"
 	"net"
 	"time"
 
 	"github.com/RexLetRock/zlib/zcount"
 )
+
+type BufferByte byte
 
 var counter zcount.Counter
 
@@ -25,12 +29,22 @@ func ServerStart() {
 
 func handleConn(conn net.Conn) error {
 	defer conn.Close()
-	bytes := make([]byte, 1024*1000)
+	tmpData := make([]byte, 1024*1000)
+
+	pipeReader, pipeWriter := io.Pipe()
+	reader := bufio.NewReader(pipeReader)
+	go func() {
+		for {
+			reader.ReadBytes('\n')
+			counter.Inc()
+		}
+	}()
+
 	for {
-		n, err := conn.Read(bytes)
+		n, err := conn.Read(tmpData)
 		if err != nil {
 			return err
 		}
-		counter.Add(int64(n))
+		pipeWriter.Write(tmpData[:n])
 	}
 }
