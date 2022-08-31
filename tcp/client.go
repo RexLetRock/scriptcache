@@ -3,6 +3,7 @@ package tcp
 import (
 	"bufio"
 	"encoding/binary"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"net"
@@ -144,7 +145,10 @@ func (c *TcpClient) GetMessageID(cbID uint64) uint64 {
 
 func ClientStart() {
 	tcpClient := NewTcpClient(Addr)
-	msg := message.Message{MessageId: 6585793445600325728, GroupId: 381870481448962, Data: []byte{0, 0}, Flags: 0, CreatedAt: 1661848717}
+
+	hexStr := "0883E0E9E8FACCD6BE5B1082D8878BD5EF561A0B48656C6C6F206B6974747920DCC0C98080804028C7D4FF888BF1F9024215DCC0C980808040F3C29080808040EF8180808080409001029A010D31363631393439313331323636"
+	decodedByteArray, _ := hex.DecodeString(hexStr)
+	msg := message.Message{MessageId: 6592524830872596483, GroupId: 382068771122178, Data: decodedByteArray, Flags: 0, CreatedAt: 1661949156780615} // fmt.Printf("bytes: %b \n val: %v \n str: %s\n", decodedByteArray, decodedByteArray, decodedByteArray)
 	// zbench.Run(1, 1, func(i, thread int) {
 	// 	_ = tcpClient.SendMessage(msg)
 	// })

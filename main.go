@@ -7,15 +7,15 @@ import (
 )
 
 var (
-	kMaxUInt64          uint64 = 0xFFFFFFFFFFFFFFFF
-	kEpoch              uint64 = 1288834974657
-	kWorkerIdBits       uint64 = 14
-	kWorkerMaxId        uint64 = kMaxUInt64 ^ (kMaxUInt64 << kWorkerIdBits)
-	kWorkerIdMask       uint64 = kMaxUInt64 ^ (kMaxUInt64 << kWorkerIdBits)
-	kSequenceBits       uint64 = 12
-	kSequenceMask       uint64 = kMaxUInt64 ^ (kMaxUInt64 << kSequenceBits)
-	kWorkerIdShift      uint64 = kSequenceBits
-	kTimestampLeftShift uint64 = kSequenceBits + kWorkerIdBits
+	kMaxUInt64 uint64 = 0xFFFFFFFFFFFFFFFF
+	// kEpoch              uint64 = 1288834974657
+	// kWorkerIdBits       uint64 = 14
+	// kWorkerMaxId        uint64 = kMaxUInt64 ^ (kMaxUInt64 << kWorkerIdBits)
+	// kWorkerIdMask       uint64 = kMaxUInt64 ^ (kMaxUInt64 << kWorkerIdBits)
+	// kSequenceBits       uint64 = 12
+	// kSequenceMask       uint64 = kMaxUInt64 ^ (kMaxUInt64 << kSequenceBits)
+	// kWorkerIdShift      uint64 = kSequenceBits
+	// kTimestampLeftShift uint64 = kSequenceBits + kWorkerIdBits
 )
 
 func main() {
@@ -44,9 +44,7 @@ func main() {
 	// fmt.Printf("%v \n", d)
 
 	a := uint64(6592462082522747004) & 0xFFF
-
 	b := uint64(6592462082589855869) & 0xFFF
-
 	c := uint64(6592462082656964734) & 0xFFF
 
 	fmt.Println(a, b, c)

@@ -2,12 +2,14 @@ package tcp
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"io"
 	"log"
 	"net"
 	"scriptcache/colf/message"
 	"sync"
+	"time"
 
 	"database/sql"
 
@@ -19,6 +21,7 @@ const countSize = 5_00_000
 const connStr = "developer:password@tcp(127.0.0.1:4000)/imsystem?parseTime=true"
 const cDebug = true
 const cSnowflakeNode = 1
+const createMessageStmt = "INSERT INTO ims_message(message_id, group_id, data, flags, created_at) VALUES(?, ?, ?, 0, ?)"
 
 var pCounter = PerformanceCounterCreate(countSize, 0, "SERVER RUN")
 var GCache *DBCache
@@ -113,14 +116,23 @@ func ConnHandleCreate(conn net.Conn) *ConnHandle {
 			if lastMsgID != nil {
 				nextMsgID = GCache.nf.NextIdWithSeq(lastMsgID.(uint64))
 				GCache.cache.Store(m.GroupId, nextMsgID)
-			}
 
-			// Gen new ids
-			// 6586444308165587067
-			// select message_id from ims_message where group_id=381870481448962 order by created_at desc limit 1;
-			// select * from ims_message where group_id=381870481448962 order by created_at desc limit 1;
-			// INSERT INTO ims_message(message_id, group_id, data, flags, created_at) VALUES(?, ?, ?, 0, ?)
-			// developer:password@tcp(127.0.0.1:4000)/imsystem?parseTime=true
+				// Save to cache for flush to DB
+				go func() {
+					ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+					defer cancel()
+
+					stmt, err := GCache.db.PrepareContext(ctx, createMessageStmt)
+					if err != nil {
+						showLog("Sql error %v \n", err)
+					}
+					defer stmt.Close()
+
+					if _, err = stmt.ExecContext(ctx, nextMsgID, m.GroupId, m.Data, time.Now().UnixMicro()); err != nil {
+						showLog("Sql error %v \n", err)
+					}
+				}()
+			}
 
 			// SEND
 			reMsg := append(msg[0:4], []byte(fmt.Sprintf("%v#\t#", nextMsgID))...)
