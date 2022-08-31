@@ -142,4 +142,5 @@ func ClientStart() {
 	// })
 
 	tcpClient.GetMessageID(tcpClient.SendMessage(msg))
+	tcpClient.GetMessageID(tcpClient.SendMessage(msg))
 }

@@ -28,9 +28,6 @@ type DBCache struct {
 }
 
 func DBCacheCreate(dburl string) *DBCache {
-	// var contexts = sync.Map{}
-	// contexts.Store(keyName, *request)
-	// cronContext, _ := contexts.Load(keyName)
 	db, err := sql.Open("mysql", dburl)
 	if err != nil {
 		log.Fatalf("Cant connect db", err)
@@ -88,21 +85,17 @@ func ConnHandleCreate(conn net.Conn) *ConnHandle {
 			m := message.Message{}
 			m.Unmarshal(msg[4 : len(msg)-3])
 
-			// HANDLE PACKAGE DATA
-
-			// INSERT SQL
-			fmt.Printf("%v \n", m)
-			// ENCODE
-			// data, _ := m.MarshalBinary()
-
 			// QUERY GROUP INFO
-			_, ok := GCache.cache.Load(m.GroupId)
+			lastMsgID, ok := GCache.cache.Load(m.GroupId)
 			if !ok {
 				// QUERY DATABASE
-				var data []byte
+				var data uint64
 				GCache.db.QueryRow(fmt.Sprintf("SELECT message_id FROM ims_message WHERE group_id=%v ORDER BY created_at DESC LIMIT 1", m.GroupId)).Scan(&data)
-				fmt.Printf("%s \n", data)
+				fmt.Printf("%v \n", data)
 				GCache.cache.Store(m.GroupId, data)
+				lastMsgID = data
+			} else {
+				fmt.Printf("FROM CACHE %v \n", lastMsgID)
 			}
 
 			// select message_id from ims_message where group_id=381870481448962 order by created_at desc limit 1;
