@@ -2,7 +2,6 @@ package tcp
 
 import (
 	"bufio"
-	"encoding/binary"
 	"fmt"
 	"io"
 	"log"
@@ -19,6 +18,7 @@ const ThreadPerConn = 5
 const countSize = 5_00_000
 const connStr = "developer:password@tcp(127.0.0.1:4000)/imsystem?parseTime=true"
 const cDebug = true
+const cSnowflakeNode = 1
 
 var pCounter = PerformanceCounterCreate(countSize, 0, "SERVER RUN")
 var GCache *DBCache
@@ -26,6 +26,7 @@ var GCache *DBCache
 type DBCache struct {
 	cache sync.Map
 	db    *sql.DB
+	nf    *Snowflake
 }
 
 func DBCacheCreate(dburl string) *DBCache {
@@ -38,6 +39,7 @@ func DBCacheCreate(dburl string) *DBCache {
 		db:    db,
 		cache: sync.Map{},
 	}
+	s.nf, _ = NewSnowflake(cSnowflakeNode)
 
 	return s
 }
@@ -98,11 +100,19 @@ func ConnHandleCreate(conn net.Conn) *ConnHandle {
 			if !ok {
 				var data uint64
 				GCache.db.QueryRow(fmt.Sprintf("SELECT message_id FROM ims_message WHERE group_id=%v ORDER BY created_at DESC LIMIT 1", m.GroupId)).Scan(&data)
-				showLog("db %v \n", data)
-				GCache.cache.Store(m.GroupId, data)
-				lastMsgID = data
+				if data != 0 {
+					showLog("db %v \n", data)
+					GCache.cache.Store(m.GroupId, data)
+					lastMsgID = data
+				}
 			} else {
 				showLog("cached %v \n", lastMsgID)
+			}
+
+			nextMsgID := uint64(0)
+			if lastMsgID != nil {
+				nextMsgID = GCache.nf.NextIdWithSeq(lastMsgID.(uint64))
+				GCache.cache.Store(m.GroupId, nextMsgID)
 			}
 
 			// Gen new ids
@@ -113,7 +123,7 @@ func ConnHandleCreate(conn net.Conn) *ConnHandle {
 			// developer:password@tcp(127.0.0.1:4000)/imsystem?parseTime=true
 
 			// SEND
-			reMsg := append(msg[0:4], []byte(fmt.Sprintf("%v#\t#", binary.LittleEndian.Uint32(msg[0:4])))...)
+			reMsg := append(msg[0:4], []byte(fmt.Sprintf("%v#\t#", nextMsgID))...)
 			cSend += 1
 			if true {
 				p.conn.Write(reMsg)

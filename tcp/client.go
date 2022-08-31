@@ -3,6 +3,7 @@ package tcp
 import (
 	"bufio"
 	"encoding/binary"
+	"fmt"
 	"io"
 	"net"
 	"strconv"
@@ -58,7 +59,11 @@ func NewTcpClient(addr string) *TcpClient {
 			cCounter.Step(true)
 			mNum := binary.LittleEndian.Uint32(msg[0:4])
 			tmpI, _ := strconv.Atoi(string(msg[4 : len(msg)-3]))
-			s.result[mNum] = uint64(tmpI)
+			tmpI64 := uint64(tmpI)
+			if tmpI64 == 0 {
+				tmpI64 = cMaxUInt64
+			}
+			s.result[mNum] = tmpI64
 		}
 	}()
 
@@ -128,6 +133,9 @@ func (c *TcpClient) GetMessageID(cbID uint64) uint64 {
 	for {
 		result = c.result[cbID]
 		if result != 0 {
+			if result == cMaxUInt64 {
+				result = 0
+			}
 			return result
 		}
 		time.Sleep(1 * time.Millisecond)
@@ -141,7 +149,7 @@ func ClientStart() {
 	// 	_ = tcpClient.SendMessage(msg)
 	// })
 
-	tcpClient.GetMessageID(tcpClient.SendMessage(msg))
-	tcpClient.GetMessageID(tcpClient.SendMessage(msg))
-	tcpClient.GetMessageID(tcpClient.SendMessage(msg))
+	fmt.Println(tcpClient.GetMessageID(tcpClient.SendMessage(msg)))
+	fmt.Println(tcpClient.GetMessageID(tcpClient.SendMessage(msg)))
+	fmt.Println(tcpClient.GetMessageID(tcpClient.SendMessage(msg)))
 }

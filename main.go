@@ -1,10 +1,20 @@
 package main
 
 import (
-	"encoding/binary"
-	"fmt"
 	"scriptcache/tcp"
 	"time"
+)
+
+var (
+	kMaxUInt64          uint64 = 0xFFFFFFFFFFFFFFFF
+	kEpoch              uint64 = 1288834974657
+	kWorkerIdBits       uint64 = 14
+	kWorkerMaxId        uint64 = kMaxUInt64 ^ (kMaxUInt64 << kWorkerIdBits)
+	kWorkerIdMask       uint64 = kMaxUInt64 ^ (kMaxUInt64 << kWorkerIdBits)
+	kSequenceBits       uint64 = 12
+	kSequenceMask       uint64 = kMaxUInt64 ^ (kMaxUInt64 << kSequenceBits)
+	kWorkerIdShift      uint64 = kSequenceBits
+	kTimestampLeftShift uint64 = kSequenceBits + kWorkerIdBits
 )
 
 func main() {
@@ -17,9 +27,20 @@ func main() {
 	// time.Sleep(1 * time.Second)
 	// go tcpevio.ClientStart()
 
-	bs := make([]byte, 8)
-	binary.LittleEndian.PutUint64(bs, 6586444308165587067)
-	fmt.Println(bs)
+	// fmt.Printf("kMaxUInt64 %b %02x \n", kMaxUInt64, kMaxUInt64)
+	// fmt.Printf("kWorkerMaxId %b %02x %v \n", kWorkerMaxId, kWorkerMaxId, kWorkerMaxId)
+	// fmt.Printf("kWorkerIdMask %b %02x %v \n", kWorkerIdMask, kWorkerIdMask, kWorkerIdMask)
+	// fmt.Printf("kSequenceMask %b %02x \n", kSequenceMask, kSequenceMask)
+	// fmt.Printf("kTimestampLeftShift %b %02x \n", kTimestampLeftShift, kTimestampLeftShift)
+
+	// workerId := uint64(1)
+	// if workerId > kWorkerMaxId {
+	// 	workerId = workerId & kWorkerIdMask
+	// }
+	// lastSeqId := (123 + 1) & kSequenceMask
+
+	// d := (uint64(time.Now().UnixMilli())-kEpoch)<<kTimestampLeftShift | (workerId << kWorkerIdShift) | lastSeqId
+	// fmt.Printf("%v \n", d)
 
 	go tcp.ServerStart()
 	time.Sleep(1 * time.Second)

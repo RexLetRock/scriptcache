@@ -7,6 +7,7 @@ import (
 )
 
 const BILL = 1_000_000_000
+var cMaxUInt64 uint64 = 0xFFFFFFFFFFFFFFFF
 
 type PerformanceCounter struct {
 	stime   int64
