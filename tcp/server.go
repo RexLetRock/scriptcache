@@ -2,14 +2,17 @@ package tcp
 
 import (
 	"bufio"
+	"encoding/binary"
+	"fmt"
 	"io"
 	"net"
+	"scriptcache/colf/message"
 )
 
 const ThreadPerConn = 5
-const countSize = 5_000_000
+const countSize = 5_00_000
 
-var pCounter = PerformanceCounterCreate(countSize, 30, "SERVER RUN")
+var pCounter = PerformanceCounterCreate(countSize, 0, "SERVER RUN")
 
 func ServerStart() {
 	listener, _ := net.Listen("tcp", "0.0.0.0:8888")
@@ -22,40 +25,71 @@ func ServerStart() {
 }
 
 func handleConn(conn net.Conn) {
-	handle := ConnHandleCreate()
-	handle.Handle(conn)
+	handle := ConnHandleCreate(conn)
+	handle.Handle()
 }
 
 type ConnHandle struct {
-	reader [ThreadPerConn]*io.PipeReader
-	writer [ThreadPerConn]*io.PipeWriter
+	readerReq *io.PipeReader
+	writerReq *io.PipeWriter
+
 	buffer []byte
+	slice  []byte
+	conn   net.Conn
 }
 
-func ConnHandleCreate() *ConnHandle {
+func ConnHandleCreate(conn net.Conn) *ConnHandle {
 	p := &ConnHandle{
 		buffer: make([]byte, 1024*1000),
+		conn:   conn,
 	}
-	for i := 0; i < ThreadPerConn; i++ {
-		p.reader[i], p.writer[i] = io.Pipe()
-		go func(index int) {
-			reader := bufio.NewReader(p.reader[index])
-			for {
-				reader.ReadBytes('\n')
-				pCounter.Step()
+	p.readerReq, p.writerReq = io.Pipe()
+
+	// Request flow
+	go func() {
+		reader := bufio.NewReader(p.readerReq)
+		cSend := 0
+		for {
+			msg, _ := readWithEnd(reader)
+
+			// DECODE
+			m := message.Message{}
+			m.Unmarshal(msg[4 : len(msg)-3])
+
+			// HANDLE PACKAGE DATA
+
+			// INSERT SQL
+
+			// ENCODE
+			_, _ = m.MarshalBinary()
+
+			// SEND
+			reMsg := append(msg[0:4], []byte(fmt.Sprintf("%v#\t#", binary.LittleEndian.Uint32(msg[0:4])))...)
+			cSend += 1
+			if true {
+				p.conn.Write(reMsg)
+			} else {
+				p.slice = append(p.slice, reMsg...)
+				if cSend%cSendSize == 0 {
+					p.conn.Write(p.slice)
+					p.slice = []byte{}
+				}
 			}
-		}(i)
-	}
+			pCounter.Step(true)
+		}
+	}()
+
+	// Response flow
 	return p
 }
 
-func (s *ConnHandle) Handle(conn net.Conn) error {
-	defer conn.Close()
+func (s *ConnHandle) Handle() error {
+	defer s.conn.Close()
 	for {
-		n, err := conn.Read(s.buffer)
+		n, err := s.conn.Read(s.buffer)
 		if err != nil {
 			return err
 		}
-		s.writer[0].Write(s.buffer[:n])
+		s.writerReq.Write(s.buffer[:n])
 	}
 }

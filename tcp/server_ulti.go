@@ -1,6 +1,7 @@
 package tcp
 
 import (
+	"bufio"
 	"fmt"
 	"time"
 )
@@ -78,4 +79,40 @@ func commaize(n int64) string {
 		s2 = string(s1[i]) + s2
 	}
 	return s2
+}
+
+func readWithEnd(reader *bufio.Reader) ([]byte, error) {
+	message, err := reader.ReadBytes('#')
+	if err != nil {
+		return nil, err
+	}
+
+	a1, err := reader.ReadByte()
+	if err != nil {
+		return nil, err
+	}
+	message = append(message, a1)
+	if a1 != '\t' {
+		message2, err := readWithEnd(reader)
+		if err != nil {
+			return nil, err
+		}
+		ret := append(message, message2...)
+		return ret, nil
+	}
+
+	a2, err := reader.ReadByte()
+	if err != nil {
+		return nil, err
+	}
+	message = append(message, a2)
+	if a2 != '#' {
+		message2, err := readWithEnd(reader)
+		if err != nil {
+			return nil, err
+		}
+		ret := append(message, message2...)
+		return ret, nil
+	}
+	return message, nil
 }
