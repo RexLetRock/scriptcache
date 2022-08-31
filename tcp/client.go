@@ -3,7 +3,6 @@ package tcp
 import (
 	"bufio"
 	"encoding/binary"
-	"fmt"
 	"io"
 	"net"
 	"strconv"
@@ -142,5 +141,5 @@ func ClientStart() {
 	// 	_ = tcpClient.SendMessage(msg)
 	// })
 
-	fmt.Printf("RESULT %v \n", tcpClient.GetMessageID(tcpClient.SendMessage(msg)))
+	tcpClient.GetMessageID(tcpClient.SendMessage(msg))
 }
