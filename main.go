@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"scriptcache/tcp"
 	"time"
 )
@@ -42,6 +43,13 @@ func main() {
 	// d := (uint64(time.Now().UnixMilli())-kEpoch)<<kTimestampLeftShift | (workerId << kWorkerIdShift) | lastSeqId
 	// fmt.Printf("%v \n", d)
 
+	a := uint64(6592462082522747004) & 0xFFF
+
+	b := uint64(6592462082589855869) & 0xFFF
+
+	c := uint64(6592462082656964734) & 0xFFF
+
+	fmt.Println(a, b, c)
 	go tcp.ServerStart()
 	time.Sleep(1 * time.Second)
 	go tcp.ClientStart()
