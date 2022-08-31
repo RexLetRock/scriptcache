@@ -51,7 +51,7 @@ func (s *PerformanceCounter) Step(show ...bool) {
 		tmpTime := now()
 		s.nstep += s.step
 		if len(show) != 0 && show[0] {
-			fmt.Printf("%v : %v opts in %vms, %v/sec, %vns/op \n", s.prefix, commaize(s.counter), (tmpTime-s.stime)/int64(time.Millisecond), commaize(s.step*BILL/(tmpTime-s.ctime)), (tmpTime-s.stime)/s.counter)
+			fmt.Printf("%v : %v opts in %vms, %v/sec, %v ns/op \n", s.prefix, commaize(s.counter), (tmpTime-s.stime)/int64(time.Millisecond), commaize(s.step*BILL/(tmpTime-s.ctime)), (tmpTime-s.stime)/s.counter)
 		}
 		s.ltime = s.ctime
 		s.ctime = tmpTime

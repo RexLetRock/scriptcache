@@ -7,6 +7,7 @@ import (
 	"io"
 	"net"
 	"strconv"
+	"time"
 
 	"scriptcache/colf/message"
 	"scriptcache/zcount"
@@ -39,13 +40,13 @@ type TcpClient struct {
 	cbCouter zcount.Counter
 }
 
-func NewTcpClient() *TcpClient {
+func NewTcpClient(addr string) *TcpClient {
 	s := &TcpClient{
 		chans:  make(chan []byte, chansSize),
 		slice:  []byte{},
 		buffer: make([]byte, 1024*1000),
 	}
-	s.conn, _ = net.Dial("tcp", Addr)
+	s.conn, _ = net.Dial("tcp", addr)
 	s.reader, s.writer = io.Pipe()
 
 	// READ RESPONSE AND CALLBACK
@@ -117,6 +118,7 @@ func (c *TcpClient) SendMessage(m message.Message) uint64 {
 	bend := append(bs, b...)
 	bend = append(bend, []byte(ENDLINE)...)
 	c.chans <- bend
+
 	return uint64(cbID)
 }
 
@@ -131,13 +133,14 @@ func (c *TcpClient) GetMessageID(cbID uint64) uint64 {
 		if result != 0 {
 			return result
 		}
+		time.Sleep(1 * time.Millisecond)
 	}
 }
 
 func ClientStart() {
-	tcpClient := NewTcpClient()
+	tcpClient := NewTcpClient(Addr)
 	msg := message.Message{MessageId: 6585793445600325728, GroupId: 381870481448962, Data: []byte{0, 0}, Flags: 0, CreatedAt: 1661848717}
-	zbench.Run(20_000, 1, func(i, thread int) {
+	zbench.Run(20_000, 12, func(i, thread int) {
 		_ = tcpClient.SendMessage(msg)
 	})
 
