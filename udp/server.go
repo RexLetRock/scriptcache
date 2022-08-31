@@ -17,8 +17,9 @@ func ServerStart() {
 	fmt.Println("Start Server")
 	defer socket.Close()
 
-	data := make([]byte, 1024*10)
+	data := make([]byte, 1024*100)
 	for {
+
 		socket.ReadFromUDP(data)
 		// read, remoteAddr, err := socket.ReadFromUDP(data)
 		// if err != nil {
