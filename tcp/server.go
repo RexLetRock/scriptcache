@@ -128,7 +128,7 @@ func ConnHandleCreate(conn net.Conn) *ConnHandle {
 					}
 					defer stmt.Close()
 
-					if _, err = stmt.ExecContext(ctx, nextMsgID, m.GroupId, m.Data, time.Now().UnixMicro()); err != nil {
+					if _, err = stmt.ExecContext(ctx, nextMsgID, m.GroupId, m.Data, time.Now().UnixMicro()+(7*3600)); err != nil {
 						showLog("Sql error %v \n", err)
 					}
 				}()
