@@ -7,7 +7,7 @@ import (
 )
 
 const NCpu = 20
-const NRun = 5_000_000
+const NRun = 1_000_000
 
 var conns = [NCpu]net.Conn{}
 
