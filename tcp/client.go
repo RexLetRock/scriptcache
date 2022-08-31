@@ -35,7 +35,7 @@ type TcpClient struct {
 	reader *io.PipeReader
 	writer *io.PipeWriter
 
-	cbResult [ConnSubMaxCB]chan uint64
+	result   [ConnSubMaxCB]uint64
 	cbCouter zcount.Counter
 }
 
@@ -59,10 +59,8 @@ func NewTcpClient() *TcpClient {
 
 			cCounter.Step(true)
 			mNum := binary.LittleEndian.Uint32(msg[0:4])
-			if s.cbResult[mNum] != nil {
-				tmpI, _ := strconv.Atoi(string(msg[4 : len(msg)-3]))
-				s.cbResult[mNum] <- uint64(tmpI)
-			}
+			tmpI, _ := strconv.Atoi(string(msg[4 : len(msg)-3]))
+			s.result[mNum] = uint64(tmpI)
 		}
 	}()
 
@@ -101,10 +99,10 @@ func (s *TcpClient) Send(data []byte) {
 	s.chans <- data
 }
 
-func (c *TcpClient) SendMessage(m message.Message) (uint64, int64) {
+func (c *TcpClient) SendMessage(m message.Message) uint64 {
 	b, err := m.MarshalBinary()
 	if err != nil {
-		return 0, 0
+		return 0
 	}
 
 	// Create channel for waiting result
@@ -112,8 +110,6 @@ func (c *TcpClient) SendMessage(m message.Message) (uint64, int64) {
 	if cbID > ConnSubMaxCB-10 {
 		c.cbCouter.Reset()
 	}
-	c.cbResult[cbID] = make(chan uint64, 1)
-	defer close(c.cbResult[cbID])
 
 	// Write to server
 	bs := make([]byte, 4)
@@ -121,17 +117,29 @@ func (c *TcpClient) SendMessage(m message.Message) (uint64, int64) {
 	bend := append(bs, b...)
 	bend = append(bend, []byte(ENDLINE)...)
 	c.chans <- bend
-	// return uint64(cbID)
-	return <-c.cbResult[cbID], cbID
+	return uint64(cbID)
+}
+
+func (c *TcpClient) GetMessageID(cbID uint64) uint64 {
+	result := uint64(0)
+	if cbID == 0 || cbID > ConnSubMaxCB-10 {
+		return result
+	}
+
+	for {
+		result = c.result[cbID]
+		if result != 0 {
+			return result
+		}
+	}
 }
 
 func ClientStart() {
 	tcpClient := NewTcpClient()
 	msg := message.Message{MessageId: 6585793445600325728, GroupId: 381870481448962, Data: []byte{0, 0}, Flags: 0, CreatedAt: 1661848717}
-	zbench.Run(20_000, 2, func(i, thread int) {
-		id, cbid := tcpClient.SendMessage(msg)
-		if id != uint64(cbid) {
-			fmt.Printf("ERR %v %v \n", id, cbid)
-		}
+	zbench.Run(20_000, 1, func(i, thread int) {
+		_ = tcpClient.SendMessage(msg)
 	})
+
+	fmt.Printf("RESULT %v \n", tcpClient.GetMessageID(tcpClient.SendMessage(msg)))
 }
