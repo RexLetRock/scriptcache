@@ -1,15 +1,13 @@
 package tcpevio
 
 import (
-	"fmt"
-
 	"github.com/tidwall/evio"
 )
 
 func ServerStart() {
 	var events evio.Events
 	events.Data = func(c evio.Conn, in []byte) (out []byte, action evio.Action) {
-		fmt.Printf("%s \n", in)
+		// fmt.Printf("%s \n", in)
 		out = in
 		return
 	}
