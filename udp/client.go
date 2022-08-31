@@ -8,26 +8,22 @@ import (
 )
 
 const NRun = 1_000_000
-const NCpu = 12
+const NCpu = 20
 
 var sockets [NCpu]*net.UDPConn
 
 func ClientStart() {
 	for i := 0; i < NCpu; i++ {
-		socket, err := net.DialUDP("udp4", nil, &net.UDPAddr{
+		socket, _ := net.DialUDP("udp4", nil, &net.UDPAddr{
 			IP:   net.IPv4(127, 0, 0, 1),
 			Port: 8080,
 		})
-		if err != nil {
-			fmt.Println("connection failed!", err)
-			return
-		}
 		defer socket.Close()
 		sockets[i] = socket
 	}
 
 	fmt.Println("Start Client")
-	senddata := []byte("hello server!")
+	senddata := []byte("abc")
 	zbench.Run(NRun, NCpu, func(i, thread int) {
 		sockets[thread].Write(senddata)
 	})

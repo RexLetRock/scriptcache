@@ -16,21 +16,8 @@ func ClientStart() {
 		conns[i], _ = net.Dial("tcp", "127.0.0.1:8888")
 	}
 
-	a := []byte("a")
+	a := []byte("abc")
 	zbench.Run(NRun, NCpu, func(i, thread int) {
 		conns[thread].Write(a)
 	})
-}
-
-func padOrTrim(bb []byte, size int) []byte {
-	l := len(bb)
-	if l == size {
-		return bb
-	}
-	if l > size {
-		return bb[l-size:]
-	}
-	tmp := make([]byte, size)
-	copy(tmp[size-l:], bb)
-	return tmp
 }
