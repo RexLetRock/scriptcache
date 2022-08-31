@@ -6,26 +6,50 @@ import (
 	"github.com/RexLetRock/zlib/zbench"
 )
 
-const NCpu = 30
-const NRun = 3_000_000
+const NCpu = 12
+const NRun = 20_000_000
+const Addr = "127.0.0.1:8888"
 
-var conns = [NCpu]net.Conn{}
-var chans = [NCpu]chan ([]byte){}
+var cSend = 0
+var cSendSize = 50_000
+var chansSize = 1024 * 1000
+
+type TcpClient struct {
+	conns net.Conn
+	chans chan ([]byte)
+}
+
+func NewTcpClient() *TcpClient {
+	p := &TcpClient{
+		chans: make(chan []byte, chansSize),
+	}
+	p.conns, _ = net.Dial("tcp", Addr)
+
+	go func() {
+		tmpSlice := []byte{}
+		for {
+			msg := <-p.chans
+			cSend += 1
+			tmpSlice = append(tmpSlice, msg...)
+			if cSend%cSendSize == 0 {
+				p.conns.Write(tmpSlice)
+				tmpSlice = []byte{}
+			}
+		}
+	}()
+
+	return p
+}
+
+func (s *TcpClient) Send(data []byte) {
+	s.chans <- data
+}
 
 func ClientStart() {
-	for i := 0; i < NCpu; i++ {
-		conns[i], _ = net.Dial("tcp", "127.0.0.1:8888")
-		chans[i] = make(chan []byte, 1024*1000)
-		go func(i int) {
-			for {
-				msg := <-chans[i]
-				conns[i].Write(msg)
-			}
-		}(i)
-	}
+	tcpClient := NewTcpClient()
 
 	a := []byte("How are you today :D \n")
 	zbench.Run(NRun, NCpu, func(i, thread int) {
-		chans[thread] <- a
+		tcpClient.Send(a)
 	})
 }

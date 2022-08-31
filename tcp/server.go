@@ -2,49 +2,60 @@ package tcp
 
 import (
 	"bufio"
-	"fmt"
 	"io"
 	"net"
-	"time"
-
-	"github.com/RexLetRock/zlib/zcount"
 )
 
-const waitTime = 15
+const ThreadPerConn = 5
+const countSize = 5_000_000
 
-var counter zcount.Counter
+var pCounter = PerformanceCounterCreate(countSize, 10, "SERVER RUN")
 
 func ServerStart() {
 	listener, _ := net.Listen("tcp", "0.0.0.0:8888")
 	defer listener.Close()
-	time.AfterFunc(waitTime*time.Second, func() { fmt.Printf("RECEIVE %v \n", counter.Value()) })
 	for {
-		conn, err := listener.Accept()
-		if err != nil {
-			continue
+		if conn, err := listener.Accept(); err == nil {
+			go handleConn(conn)
 		}
-		go handleConn(conn)
 	}
 }
 
-func handleConn(conn net.Conn) error {
+func handleConn(conn net.Conn) {
+	handle := ConnHandleCreate()
+	handle.Handle(conn)
+}
+
+type ConnHandle struct {
+	reader [ThreadPerConn]*io.PipeReader
+	writer [ThreadPerConn]*io.PipeWriter
+	buffer []byte
+}
+
+func ConnHandleCreate() *ConnHandle {
+	p := &ConnHandle{
+		buffer: make([]byte, 1024*1000),
+	}
+	for i := 0; i < ThreadPerConn; i++ {
+		p.reader[i], p.writer[i] = io.Pipe()
+		go func(index int) {
+			reader := bufio.NewReader(p.reader[index])
+			for {
+				reader.ReadBytes('\n')
+				pCounter.Step()
+			}
+		}(i)
+	}
+	return p
+}
+
+func (s *ConnHandle) Handle(conn net.Conn) error {
 	defer conn.Close()
-	tmpData := make([]byte, 1024*1000)
-
-	pipeReader, pipeWriter := io.Pipe()
-	reader := bufio.NewReader(pipeReader)
-	go func() {
-		for {
-			reader.ReadBytes('\n')
-			counter.Inc()
-		}
-	}()
-
 	for {
-		n, err := conn.Read(tmpData)
+		n, err := conn.Read(s.buffer)
 		if err != nil {
 			return err
 		}
-		pipeWriter.Write(tmpData[:n])
+		s.writer[0].Write(s.buffer[:n])
 	}
 }
