@@ -8,12 +8,14 @@ import (
 	"log"
 	"net"
 	"scriptcache/colf/message"
+	"scriptcache/voicechat"
 	"sync"
 	"time"
 
 	"database/sql"
 
 	_ "github.com/go-sql-driver/mysql"
+	protobuf "google.golang.org/protobuf/proto"
 )
 
 const ThreadPerConn = 5
@@ -140,7 +142,15 @@ func ConnHandleCreate(conn net.Conn) *ConnHandle {
 					}
 					defer stmt.Close()
 
-					if _, err = stmt.ExecContext(ctx, nextMsgID, m.GroupId, m.Data, m.CreatedAt); err != nil {
+					fixedData := &voicechat.Message{}
+					protobuf.Unmarshal([]byte(m.Data), fixedData)
+					fixedData.MessageId = nextMsgID
+					fixedDataBin, _ := protobuf.Marshal(fixedData)
+
+					// Insert to database
+					m.Data = fixedDataBin
+					m.MessageId = nextMsgID
+					if _, err = stmt.ExecContext(ctx, m.MessageId, m.GroupId, m.Data, m.CreatedAt); err != nil {
 						showLog("Sql error %v \n", err)
 					}
 				}()
