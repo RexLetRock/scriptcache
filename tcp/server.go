@@ -10,14 +10,14 @@ import (
 	"github.com/RexLetRock/zlib/zcount"
 )
 
-type BufferByte byte
+const waitTime = 15
 
 var counter zcount.Counter
 
 func ServerStart() {
 	listener, _ := net.Listen("tcp", "0.0.0.0:8888")
 	defer listener.Close()
-	time.AfterFunc(10*time.Second, func() { fmt.Printf("RECEIVE %v \n", counter.Value()) })
+	time.AfterFunc(waitTime*time.Second, func() { fmt.Printf("RECEIVE %v \n", counter.Value()) })
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
