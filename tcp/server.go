@@ -27,23 +27,25 @@ type DBCache struct {
 	db    *sql.DB
 }
 
-func DBCacheCreate(dburl string) {
+func DBCacheCreate(dburl string) *DBCache {
 	// var contexts = sync.Map{}
 	// contexts.Store(keyName, *request)
 	// cronContext, _ := contexts.Load(keyName)
 	db, err := sql.Open("mysql", dburl)
+	if err != nil {
+		log.Fatalf("Cant connect db", err)
+	}
+
 	s := &DBCache{
 		db:    db,
 		cache: sync.Map{},
 	}
+
+	return s
 }
 
 func ServerStart() {
-	GCache := DBCacheCreate(connStr)
-
-	if err != nil {
-		log.Fatalf("Cant connect db", err)
-	}
+	GCache = DBCacheCreate(connStr)
 
 	listener, _ := net.Listen("tcp", "0.0.0.0:8888")
 	defer listener.Close()
