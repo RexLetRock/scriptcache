@@ -18,6 +18,7 @@ import (
 const ThreadPerConn = 5
 const countSize = 5_00_000
 const connStr = "developer:password@tcp(127.0.0.1:4000)/imsystem?parseTime=true"
+const cDebug = true
 
 var pCounter = PerformanceCounterCreate(countSize, 0, "SERVER RUN")
 var GCache *DBCache
@@ -67,6 +68,12 @@ type ConnHandle struct {
 	conn   net.Conn
 }
 
+func showLog(format string, v ...any) {
+	if cDebug {
+		log.Printf(format, v...)
+	}
+}
+
 func ConnHandleCreate(conn net.Conn) *ConnHandle {
 	p := &ConnHandle{
 		buffer: make([]byte, 1024*1000),
@@ -85,19 +92,21 @@ func ConnHandleCreate(conn net.Conn) *ConnHandle {
 			m := message.Message{}
 			m.Unmarshal(msg[4 : len(msg)-3])
 
-			// QUERY GROUP INFO
+			// HANDLE
+			// Query lastest messageid info
 			lastMsgID, ok := GCache.cache.Load(m.GroupId)
 			if !ok {
-				// QUERY DATABASE
 				var data uint64
 				GCache.db.QueryRow(fmt.Sprintf("SELECT message_id FROM ims_message WHERE group_id=%v ORDER BY created_at DESC LIMIT 1", m.GroupId)).Scan(&data)
-				fmt.Printf("%v \n", data)
+				showLog("db %v \n", data)
 				GCache.cache.Store(m.GroupId, data)
 				lastMsgID = data
 			} else {
-				fmt.Printf("FROM CACHE %v \n", lastMsgID)
+				showLog("cached %v \n", lastMsgID)
 			}
 
+			// Gen new ids
+			// 6586444308165587067
 			// select message_id from ims_message where group_id=381870481448962 order by created_at desc limit 1;
 			// select * from ims_message where group_id=381870481448962 order by created_at desc limit 1;
 			// INSERT INTO ims_message(message_id, group_id, data, flags, created_at) VALUES(?, ?, ?, 0, ?)
