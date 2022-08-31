@@ -9,7 +9,7 @@ import (
 const ThreadPerConn = 5
 const countSize = 5_000_000
 
-var pCounter = PerformanceCounterCreate(countSize, 10, "SERVER RUN")
+var pCounter = PerformanceCounterCreate(countSize, 30, "SERVER RUN")
 
 func ServerStart() {
 	listener, _ := net.Listen("tcp", "0.0.0.0:8888")
