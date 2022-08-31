@@ -1,4 +1,4 @@
-module scriptcache
+module github.com/RexLetRock/scriptcache
 
 go 1.19
 
