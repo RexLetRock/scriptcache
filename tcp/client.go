@@ -6,8 +6,8 @@ import (
 	"github.com/RexLetRock/zlib/zbench"
 )
 
-const NCpu = 20
-const NRun = 1_000_000
+const NCpu = 40
+const NRun = 5_000_000
 
 var conns = [NCpu]net.Conn{}
 
