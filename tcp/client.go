@@ -11,7 +11,7 @@ import (
 	"github.com/RexLetRock/zlib/zbench"
 )
 
-const NCpu = 12
+const NCpu = 60
 const NRun = 5_000_000
 const ENDLINE = "#\t#"
 
