@@ -11,8 +11,8 @@ import (
 	"github.com/RexLetRock/zlib/zbench"
 )
 
-const NCpu = 60
-const NRun = 20_000_000
+const NCpu = 12
+const NRun = 5_000_000
 const ENDLINE = "#\t#"
 
 var cSend = 0
@@ -50,15 +50,15 @@ func NewTcpClient(addr string) *TcpClient {
 	}()
 
 	// RECEIVE LOOP
-	// go func() {
-	// for {
-	// n, err := s.conn.Read(s.buffer)
-	// if err != nil {
-	// 	return
-	// }
-	// s.writer.Write(s.buffer[:n])
-	// }
-	// }()
+	go func() {
+		for {
+			n, err := s.conn.Read(s.buffer)
+			if err != nil {
+				return
+			}
+			s.writer.Write(s.buffer[:n])
+		}
+	}()
 
 	// WRITE LOOP
 	go func() {
