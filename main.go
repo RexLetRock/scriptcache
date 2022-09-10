@@ -1,13 +1,16 @@
 package main
 
 import (
-	"scriptcache/tcp"
+	"time"
+
+	"github.com/RexLetRock/scriptcache/tcp"
 )
 
-const connStr = "developer:password@tcp(127.0.0.1:4000)/imsystem?parseTime=true"
-const connHost = "0.0.0.0:8888"
+const connHost = "127.0.0.1:8888"
 
 func main() {
-	tcp.ServerStartViaOptions(connStr, connHost)
+	go tcp.ServerStartViaOptions(connHost)
+	time.Sleep(2 * time.Second)
+	tcp.ClientStart(connHost)
 	select {}
 }
