@@ -50,15 +50,15 @@ func NewTcpClient(addr string) *TcpClient {
 	}()
 
 	// RECEIVE LOOP
-	go func() {
-		for {
-			n, err := s.conn.Read(s.buffer)
-			if err != nil {
-				return
-			}
-			s.writer.Write(s.buffer[:n])
-		}
-	}()
+	// go func() {
+	// for {
+	// n, err := s.conn.Read(s.buffer)
+	// if err != nil {
+	// 	return
+	// }
+	// s.writer.Write(s.buffer[:n])
+	// }
+	// }()
 
 	// WRITE LOOP
 	go func() {
