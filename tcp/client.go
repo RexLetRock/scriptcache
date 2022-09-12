@@ -23,18 +23,16 @@ type TcpClient struct {
 	slice  []byte
 	buffer []byte
 
-	reader  *io.PipeReader
-	writer  *io.PipeWriter
-	iswrite bool
+	reader *io.PipeReader
+	writer *io.PipeWriter
 }
 
 func NewTcpClient(addr string) *TcpClient {
 	s := &TcpClient{
-		chans:   make(chan []byte, cChansSize),
-		flush:   make(chan []byte, cChansSize),
-		slice:   []byte{},
-		buffer:  make([]byte, cChansSize),
-		iswrite: false,
+		chans:  make(chan []byte, cChansSize),
+		flush:  make(chan []byte, cChansSize),
+		slice:  []byte{},
+		buffer: make([]byte, cChansSize),
 	}
 	s.conn, _ = net.Dial("tcp", addr)
 	s.reader, s.writer = io.Pipe()
@@ -43,9 +41,7 @@ func NewTcpClient(addr string) *TcpClient {
 	go func() {
 		for {
 			time.Sleep(cTimeToFlush)
-			if s.iswrite {
-				s.flush <- []byte{1}
-			}
+			s.flush <- []byte{1}
 		}
 	}()
 
@@ -81,7 +77,6 @@ func NewTcpClient(addr string) *TcpClient {
 		for {
 			select {
 			case msg := <-s.chans:
-				s.iswrite = true
 				cSend += 1
 				s.slice = append(s.slice, msg...)
 				if cSend >= cSendSize {
@@ -91,7 +86,6 @@ func NewTcpClient(addr string) *TcpClient {
 				}
 			case <-s.flush:
 				if len(s.slice) > 0 {
-					s.iswrite = false
 					s.conn.Write((s.slice))
 					s.slice = []byte{}
 				}

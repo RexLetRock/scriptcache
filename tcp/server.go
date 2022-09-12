@@ -55,17 +55,14 @@ type ConnHandle struct {
 	buffer []byte
 	slice  []byte
 	conn   net.Conn
-
-	iswrite bool
 }
 
 func ConnHandleCreate(conn net.Conn) *ConnHandle {
 	s := &ConnHandle{
-		chans:   make(chan []byte, cChansSize),
-		flush:   make(chan []byte, cChansSize),
-		buffer:  make([]byte, cChansSize),
-		conn:    conn,
-		iswrite: false,
+		chans:  make(chan []byte, cChansSize),
+		flush:  make(chan []byte, cChansSize),
+		buffer: make([]byte, cChansSize),
+		conn:   conn,
 	}
 	s.readerReq, s.writerReq = io.Pipe()
 
@@ -73,9 +70,7 @@ func ConnHandleCreate(conn net.Conn) *ConnHandle {
 	go func() {
 		for {
 			time.Sleep(cTimeToFlush)
-			if s.iswrite {
-				s.flush <- []byte{1}
-			}
+			s.flush <- []byte{1}
 		}
 	}()
 
@@ -94,7 +89,6 @@ func ConnHandleCreate(conn net.Conn) *ConnHandle {
 		for {
 			select {
 			case msg := <-s.chans:
-				s.iswrite = true
 				s.slice = append(s.slice, msg...)
 				cSend += 1
 				if cSend >= cSendSize {
@@ -104,7 +98,6 @@ func ConnHandleCreate(conn net.Conn) *ConnHandle {
 				}
 			case <-s.flush:
 				if len(s.slice) > 0 {
-					s.iswrite = false
 					s.conn.Write(s.slice)
 					s.slice = []byte{}
 				}
