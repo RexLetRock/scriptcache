@@ -55,32 +55,36 @@ type ConnHandle struct {
 	buffer []byte
 	slice  []byte
 	conn   net.Conn
+
+	iswrite bool
 }
 
 func ConnHandleCreate(conn net.Conn) *ConnHandle {
-	p := &ConnHandle{
-		chans:  make(chan []byte, cChansSize),
-		flush:  make(chan []byte, cChansSize),
-		buffer: make([]byte, cChansSize),
-		conn:   conn,
+	s := &ConnHandle{
+		chans:   make(chan []byte, cChansSize),
+		flush:   make(chan []byte, cChansSize),
+		buffer:  make([]byte, cChansSize),
+		conn:    conn,
+		iswrite: false,
 	}
-	p.readerReq, p.writerReq = io.Pipe()
+	s.readerReq, s.writerReq = io.Pipe()
 
 	// Timetoflush
-	ticker := time.NewTicker(100 * time.Microsecond)
 	go func() {
 		for {
-			<-ticker.C
-			p.flush <- []byte{1}
+			time.Sleep(cTimeToFlush)
+			if s.iswrite {
+				s.flush <- []byte{1}
+			}
 		}
 	}()
 
 	// Receive request msg flow
 	go func() {
-		reader := bufio.NewReader(p.readerReq)
+		reader := bufio.NewReader(s.readerReq)
 		for {
 			msg, _ := readWithEnd(reader)
-			p.chans <- msg
+			s.chans <- msg
 		}
 	}()
 
@@ -89,23 +93,27 @@ func ConnHandleCreate(conn net.Conn) *ConnHandle {
 		cSend := 0
 		for {
 			select {
-			case msg := <-p.chans:
-				p.slice = append(p.slice, msg...)
+			case msg := <-s.chans:
+				s.iswrite = true
+				s.slice = append(s.slice, msg...)
 				cSend += 1
 				if cSend >= cSendSize {
-					p.conn.Write(p.slice)
-					p.slice = []byte{}
+					s.conn.Write(s.slice)
+					s.slice = []byte{}
 					cSend = 0
 				}
-			case <-p.flush:
-				p.conn.Write(p.slice)
-				p.slice = []byte{}
+			case <-s.flush:
+				if len(s.slice) > 0 {
+					s.iswrite = false
+					s.conn.Write(s.slice)
+					s.slice = []byte{}
+				}
 			}
 		}
 	}()
 
 	// Response flow
-	return p
+	return s
 }
 
 func (s *ConnHandle) Handle() error {

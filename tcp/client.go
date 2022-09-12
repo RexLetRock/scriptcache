@@ -23,26 +23,29 @@ type TcpClient struct {
 	slice  []byte
 	buffer []byte
 
-	reader *io.PipeReader
-	writer *io.PipeWriter
+	reader  *io.PipeReader
+	writer  *io.PipeWriter
+	iswrite bool
 }
 
 func NewTcpClient(addr string) *TcpClient {
 	s := &TcpClient{
-		chans:  make(chan []byte, cChansSize),
-		flush:  make(chan []byte, cChansSize),
-		slice:  []byte{},
-		buffer: make([]byte, cChansSize),
+		chans:   make(chan []byte, cChansSize),
+		flush:   make(chan []byte, cChansSize),
+		slice:   []byte{},
+		buffer:  make([]byte, cChansSize),
+		iswrite: false,
 	}
 	s.conn, _ = net.Dial("tcp", addr)
 	s.reader, s.writer = io.Pipe()
 
 	// Timetoflush
-	ticker := time.NewTicker(100 * time.Microsecond)
 	go func() {
 		for {
-			<-ticker.C
-			s.flush <- []byte{1}
+			time.Sleep(cTimeToFlush)
+			if s.iswrite {
+				s.flush <- []byte{1}
+			}
 		}
 	}()
 
@@ -78,6 +81,7 @@ func NewTcpClient(addr string) *TcpClient {
 		for {
 			select {
 			case msg := <-s.chans:
+				s.iswrite = true
 				cSend += 1
 				s.slice = append(s.slice, msg...)
 				if cSend >= cSendSize {
@@ -86,8 +90,11 @@ func NewTcpClient(addr string) *TcpClient {
 					cSend = 0
 				}
 			case <-s.flush:
-				s.conn.Write((s.slice))
-				s.slice = []byte{}
+				if len(s.slice) > 0 {
+					s.iswrite = false
+					s.conn.Write((s.slice))
+					s.slice = []byte{}
+				}
 			}
 		}
 	}()
@@ -115,8 +122,7 @@ func (c *TcpClient) SendMessage(m message.Message) uint64 {
 }
 
 func (c *TcpClient) SendMessageFake() {
-	bend := append([]byte{}, []byte(ENDLINE)...)
-	c.chans <- bend
+	c.chans <- []byte(ENDLINE)
 }
 
 func (c *TcpClient) SendMessageFakeV2() {
@@ -134,6 +140,10 @@ func ClientStart(addr string) {
 	// decodedByteArray := []byte{}
 	// msg := message.Message{MessageId: 6592524830872596483, GroupId: 382068771122178, Data: decodedByteArray, Flags: 0, CreatedAt: 1661949156780615}
 	// tcpClient[thread].SendMessage(msg)
+	zbench.Run(NRun, NCpu, func(i, thread int) {
+		tcpClient[thread].SendMessageFake()
+	})
+
 	zbench.Run(NRun, NCpu, func(i, thread int) {
 		tcpClient[thread].SendMessageFake()
 	})
