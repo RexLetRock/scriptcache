@@ -11,7 +11,7 @@ func MainEvio() {
 		out = in
 		return
 	}
-	if err := evio.Serve(events, "tcp://127.0.0.1:8888"); err != nil {
+	if err := evio.Serve(events, "tcp://127.0.0.1:9000"); err != nil {
 		panic(err.Error())
 	}
 }
