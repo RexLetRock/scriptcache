@@ -80,13 +80,13 @@ func NewTcpClient(addr string) *TcpClient {
 				cSend += 1
 				s.slice = append(s.slice, msg...)
 				if cSend >= cSendSize {
-					s.conn.Write(s.slice)
+					go s.conn.Write(s.slice)
 					s.slice = []byte{}
 					cSend = 0
 				}
 			case <-s.flush:
 				if len(s.slice) > 0 {
-					s.conn.Write((s.slice))
+					go s.conn.Write((s.slice))
 					s.slice = []byte{}
 				}
 			}

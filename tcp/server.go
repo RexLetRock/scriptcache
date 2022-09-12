@@ -92,13 +92,13 @@ func ConnHandleCreate(conn net.Conn) *ConnHandle {
 				s.slice = append(s.slice, msg...)
 				cSend += 1
 				if cSend >= cSendSize {
-					s.conn.Write(s.slice)
+					go s.conn.Write(s.slice)
 					s.slice = []byte{}
 					cSend = 0
 				}
 			case <-s.flush:
 				if len(s.slice) > 0 {
-					s.conn.Write(s.slice)
+					go s.conn.Write(s.slice)
 					s.slice = []byte{}
 				}
 			}
