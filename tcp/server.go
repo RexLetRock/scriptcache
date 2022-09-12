@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"net"
+	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 )
@@ -48,6 +49,9 @@ type ConnHandle struct {
 	readerReq *io.PipeReader
 	writerReq *io.PipeWriter
 
+	chans chan []byte
+	flush chan []byte
+
 	buffer []byte
 	slice  []byte
 	conn   net.Conn
@@ -55,33 +59,47 @@ type ConnHandle struct {
 
 func ConnHandleCreate(conn net.Conn) *ConnHandle {
 	p := &ConnHandle{
-		buffer: make([]byte, 1024*1000),
+		chans:  make(chan []byte, cChansSize),
+		flush:  make(chan []byte, cChansSize),
+		buffer: make([]byte, cChansSize),
 		conn:   conn,
 	}
 	p.readerReq, p.writerReq = io.Pipe()
 
-	// Request flow
+	// Timetoflush
+	ticker := time.NewTicker(100 * time.Microsecond)
+	go func() {
+		for {
+			<-ticker.C
+			p.flush <- []byte{1}
+		}
+	}()
+
+	// Receive request msg flow
 	go func() {
 		reader := bufio.NewReader(p.readerReq)
-		cSend := 0
 		for {
 			msg, _ := readWithEnd(reader)
+			p.chans <- msg
+		}
+	}()
 
-			// DECODE
-			// m := message.Message{}
-			// m.Unmarshal(msg[4 : len(msg)-3])
-
-			// SEND
-			// mbin, _ := m.MarshalBinary()
-			// reMsg := append(msg[0:4], []byte(fmt.Sprintf("%v#\t#", mbin))...)
-			// cSend += 1
-			reMsg := msg
-			p.slice = append(p.slice, reMsg...)
-			cSend += 1
-			if cSend >= cSendSize {
+	// Handle package flow - write flow
+	go func() {
+		cSend := 0
+		for {
+			select {
+			case msg := <-p.chans:
+				p.slice = append(p.slice, msg...)
+				cSend += 1
+				if cSend >= cSendSize {
+					p.conn.Write(p.slice)
+					p.slice = []byte{}
+					cSend = 0
+				}
+			case <-p.flush:
 				p.conn.Write(p.slice)
 				p.slice = []byte{}
-				cSend = 0
 			}
 		}
 	}()
