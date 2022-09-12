@@ -146,7 +146,7 @@ func ClientStart(addr string) {
 		tcpClient[thread].SendMessageFakeV2()
 	})
 
-	time.Sleep(2 * time.Second)
+	time.Sleep(5 * time.Second)
 	logrus.Warnf("Msg count %v \n", count.Value())
 
 }
