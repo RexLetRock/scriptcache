@@ -119,6 +119,11 @@ func (c *TcpClient) SendMessageFake() {
 	c.chans <- bend
 }
 
+func (c *TcpClient) SendMessageFakeV2() {
+	bend := append([]byte("How are you today baby"), []byte(ENDLINE)...)
+	c.chans <- bend
+}
+
 func ClientStart(addr string) {
 	var tcpClient [NCpu]*TcpClient
 	for i := 0; i < NCpu; i++ {
@@ -131,6 +136,10 @@ func ClientStart(addr string) {
 	// tcpClient[thread].SendMessage(msg)
 	zbench.Run(NRun, NCpu, func(i, thread int) {
 		tcpClient[thread].SendMessageFake()
+	})
+
+	zbench.Run(NRun, NCpu, func(i, thread int) {
+		tcpClient[thread].SendMessageFakeV2()
 	})
 
 	time.Sleep(2 * time.Second)
