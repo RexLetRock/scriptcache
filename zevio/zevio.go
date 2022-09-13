@@ -7,7 +7,6 @@ import (
 func MainEvio() {
 	var events evio.Events
 	events.Data = func(c evio.Conn, in []byte) (out []byte, action evio.Action) {
-		// logrus.Warnf("IN %v \n", in)
 		out = in
 		return
 	}
