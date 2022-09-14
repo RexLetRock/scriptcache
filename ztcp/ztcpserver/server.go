@@ -95,7 +95,6 @@ func ConnHandleCreate(conn net.Conn) *ConnHandle {
 			case msg := <-s.chans:
 				s.slice = append(s.slice, msg...)
 				cSend += 1
-				pCounter.Step()
 				if cSend >= zu.SendSize {
 					go s.conn.Write(s.slice)
 					s.slice = []byte{}
