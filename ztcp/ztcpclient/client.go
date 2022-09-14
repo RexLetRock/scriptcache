@@ -28,6 +28,8 @@ type TcpClient struct {
 
 	sendCount  int
 	sendBuffer []byte
+	sendReader *io.PipeReader
+	sendWriter *io.PipeWriter
 }
 
 func NewTcpClient(addr string) *TcpClient {
@@ -40,6 +42,7 @@ func NewTcpClient(addr string) *TcpClient {
 
 	s.conn, _ = net.Dial("tcp", addr)
 	s.reader, s.writer = io.Pipe()
+	s.sendReader, s.sendWriter = io.Pipe()
 
 	go s.startTakeloop()
 	go s.startSendloop()

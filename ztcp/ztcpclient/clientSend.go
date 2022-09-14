@@ -1,6 +1,7 @@
 package ztcpclient
 
 import (
+	"bufio"
 	"encoding/binary"
 	"time"
 
@@ -16,30 +17,28 @@ func (s *TcpClient) startSendloop() {
 			s.flush <- []byte{1}
 		}
 	}()
-	s.sendLoopViaBuffer()
-	// s.startSendloopViaChannel()
+	s.sendThroughBuffer()
 }
 
-// func (s *TcpClient) startSendloopViaChannel() {
-// 	cSend := 0
-// 	for {
-// 		select {
-// 		case msg := <-s.chans:
-// 			cSend += 1
-// 			s.slice = append(s.slice, msg...)
-// 			if cSend >= zu.SendSize {
-// 				go s.conn.Write(s.slice)
-// 				s.slice = []byte{}
-// 				cSend = 0
-// 			}
-// 		case <-s.flush:
-// 			if len(s.slice) > 0 {
-// 				go s.conn.Write((s.slice))
-// 				s.slice = []byte{}
-// 			}
-// 		}
-// 	}
-// }
+func (s *TcpClient) sendThroughBuffer() {
+	b := bufio.NewReader(s.sendReader)
+	send := 0
+	if b != nil && send != 0 {
+
+	}
+	// for {
+	// 	v, _, err := b.()
+	// 	if err == io.EOF {
+	// 		break
+	// 	}
+	// 	if err != nil {
+	// 		panic(err)
+	// 	}
+	// 	send++
+	// 	s.sendBuffer = append(s.sendBuffer, v...)
+	// 	println("The value is " + string(v))
+	// }
+}
 
 func (s *TcpClient) SendBinary(data []byte) {
 	s.chans <- data
