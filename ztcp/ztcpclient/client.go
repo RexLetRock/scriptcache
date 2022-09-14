@@ -1,7 +1,6 @@
 package ztcpclient
 
 import (
-	"bufio"
 	"io"
 	"net"
 	"time"
@@ -29,7 +28,6 @@ type TcpClient struct {
 
 	sendCount  int
 	sendBuffer []byte
-	sendWriter *bufio.Writer
 }
 
 func NewTcpClient(addr string) *TcpClient {
@@ -41,7 +39,6 @@ func NewTcpClient(addr string) *TcpClient {
 	}
 
 	s.conn, _ = net.Dial("tcp", addr)
-	s.sendWriter = bufio.NewWriter(s.conn)
 	s.reader, s.writer = io.Pipe()
 
 	go s.startTakeloop()
@@ -76,7 +73,7 @@ func ClientStart(addr string) {
 	// 	tcpClient[thread].SendMessageFakeViaBufferV2()
 	// })
 
-	time.Sleep(5 * time.Second)
+	time.Sleep(10 * time.Second)
 	logrus.Warnf("Client receive and count %v msg \n", zu.Commaize(count.Value()))
 
 }

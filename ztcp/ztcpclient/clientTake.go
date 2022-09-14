@@ -21,6 +21,7 @@ func (s *TcpClient) startTakeloop() {
 		}
 	}()
 
+	defer s.conn.Close()
 	for {
 		n, err := s.conn.Read(s.buffer)
 		if err != nil {
