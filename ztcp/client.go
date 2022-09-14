@@ -1,4 +1,4 @@
-package tcp
+package ztcp
 
 import (
 	"bufio"
@@ -7,11 +7,11 @@ import (
 	"net"
 	"time"
 
-	"github.com/RexLetRock/scriptcache/colf/message"
 	"github.com/sirupsen/logrus"
 
 	"github.com/RexLetRock/zlib/zbench"
 	"github.com/RexLetRock/zlib/zcount"
+	"github.com/vmihailenco/msgpack/v5"
 )
 
 var count zcount.Counter
@@ -36,16 +36,12 @@ func NewTcpClient(addr string) *TcpClient {
 	}
 	s.conn, _ = net.Dial("tcp", addr)
 	s.reader, s.writer = io.Pipe()
+	go s.startReadLoop()
+	go s.startWriteLoop()
+	return s
+}
 
-	// Timetoflush
-	go func() {
-		for {
-			time.Sleep(cTimeToFlush)
-			s.flush <- []byte{1}
-		}
-	}()
-
-	// READ RESPONSE AND CALLBACK
+func (s *TcpClient) startReadLoop() {
 	go func() {
 		reader := bufio.NewReader(s.reader)
 		for {
@@ -60,53 +56,50 @@ func NewTcpClient(addr string) *TcpClient {
 		}
 	}()
 
-	// RECEIVE LOOP
-	go func() {
-		for {
-			n, err := s.conn.Read(s.buffer)
-			if err != nil {
-				return
-			}
-			s.writer.Write(s.buffer[:n])
+	defer s.conn.Close()
+	for {
+		n, err := s.conn.Read(s.buffer)
+		if err != nil {
+			return
 		}
-	}()
-
-	// WRITE LOOP
-	go func() {
-		cSend := 0
-		for {
-			select {
-			case msg := <-s.chans:
-				cSend += 1
-				s.slice = append(s.slice, msg...)
-				if cSend >= cSendSize {
-					go s.conn.Write(s.slice)
-					s.slice = []byte{}
-					cSend = 0
-				}
-			case <-s.flush:
-				if len(s.slice) > 0 {
-					go s.conn.Write((s.slice))
-					s.slice = []byte{}
-				}
-			}
-		}
-	}()
-
-	return s
+		s.writer.Write(s.buffer[:n])
+	}
 }
 
-func (s *TcpClient) Send(data []byte) {
+func (s *TcpClient) startWriteLoop() {
+	go func() {
+		for {
+			time.Sleep(cTimeToFlush)
+			s.flush <- []byte{}
+		}
+	}()
+
+	cSend := 0
+	for {
+		select {
+		case msg := <-s.chans:
+			cSend += 1
+			s.slice = append(s.slice, msg...)
+			if cSend >= cSendSize {
+				go s.conn.Write(s.slice)
+				s.slice = []byte{}
+				cSend = 0
+			}
+		case <-s.flush:
+			if len(s.slice) > 0 {
+				go s.conn.Write((s.slice))
+				s.slice = []byte{}
+			}
+		}
+	}
+}
+
+func (s *TcpClient) SendBinary(data []byte) {
 	s.chans <- data
 }
 
-func (c *TcpClient) SendMessage(m message.Message) uint64 {
-	b, err := m.MarshalBinary()
-	if err != nil {
-		return 0
-	}
-
-	// Write to server
+func (c *TcpClient) SendMessage(m interface{}) uint64 {
+	b, _ := msgpack.Marshal(m)
 	bs := make([]byte, 4)
 	binary.LittleEndian.PutUint32(bs, uint32(0))
 	bend := append(bs, b...)
@@ -134,14 +127,17 @@ func ClientStart(addr string) {
 	// decodedByteArray := []byte{}
 	// msg := message.Message{MessageId: 6592524830872596483, GroupId: 382068771122178, Data: decodedByteArray, Flags: 0, CreatedAt: 1661949156780615}
 	// tcpClient[thread].SendMessage(msg)
+	logrus.Warnf("TEST 30M EMPTY")
 	zbench.Run(NRun, NCpu, func(i, thread int) {
 		tcpClient[thread].SendMessageFake()
 	})
 
+	logrus.Warnf("TEST 30M EMPTY")
 	zbench.Run(NRun, NCpu, func(i, thread int) {
 		tcpClient[thread].SendMessageFake()
 	})
 
+	logrus.Warnf("TEST 30M - How are you today baby")
 	zbench.Run(NRun, NCpu, func(i, thread int) {
 		tcpClient[thread].SendMessageFakeV2()
 	})
