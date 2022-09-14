@@ -6,7 +6,7 @@ import (
 	tcp "github.com/RexLetRock/scriptcache/ztcp"
 )
 
-const connHost = "127.0.0.1:9999"
+const connHost = "127.0.0.1:19999"
 
 func main() {
 	go tcp.ServerStartViaOptions(connHost)
