@@ -31,7 +31,11 @@ func ServerStart() {
 
 func ServerStartViaOptions(host string) {
 	log.Printf("Start server at %v\n", host)
-	listener, _ := net.Listen("tcp", host)
+	listener, err := net.Listen("tcp", host)
+	if err != nil {
+		log.Fatalf("Start server err %v \n", err)
+	}
+
 	defer listener.Close()
 	for {
 		if conn, err := listener.Accept(); err == nil {
