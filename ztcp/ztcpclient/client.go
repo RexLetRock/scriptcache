@@ -1,4 +1,4 @@
-package ztcp
+package ztcpclient
 
 import (
 	"bufio"
@@ -9,6 +9,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
+	zu "github.com/RexLetRock/scriptcache/ztcp/ztcputil"
 	"github.com/RexLetRock/zlib/zbench"
 	"github.com/RexLetRock/zlib/zcount"
 	"github.com/vmihailenco/msgpack/v5"
@@ -29,10 +30,10 @@ type TcpClient struct {
 
 func NewTcpClient(addr string) *TcpClient {
 	s := &TcpClient{
-		chans:  make(chan []byte, cChansSize),
-		flush:  make(chan []byte, cChansSize),
+		chans:  make(chan []byte, zu.ChansSize),
+		flush:  make(chan []byte, zu.ChansSize),
 		slice:  []byte{},
-		buffer: make([]byte, cChansSize),
+		buffer: make([]byte, zu.ChansSize),
 	}
 	s.conn, _ = net.Dial("tcp", addr)
 	s.reader, s.writer = io.Pipe()
@@ -45,7 +46,7 @@ func (s *TcpClient) startReadLoop() {
 	go func() {
 		reader := bufio.NewReader(s.reader)
 		for {
-			msg, err := readWithEnd(reader)
+			msg, err := zu.ReadWithEnd(reader)
 			if err != nil {
 				return
 			}
@@ -69,7 +70,7 @@ func (s *TcpClient) startReadLoop() {
 func (s *TcpClient) startWriteLoop() {
 	go func() {
 		for {
-			time.Sleep(cTimeToFlush)
+			time.Sleep(zu.TimeToFlush)
 			s.flush <- []byte{}
 		}
 	}()
@@ -80,7 +81,7 @@ func (s *TcpClient) startWriteLoop() {
 		case msg := <-s.chans:
 			cSend += 1
 			s.slice = append(s.slice, msg...)
-			if cSend >= cSendSize {
+			if cSend >= zu.SendSize {
 				go s.conn.Write(s.slice)
 				s.slice = []byte{}
 				cSend = 0
@@ -103,23 +104,23 @@ func (c *TcpClient) SendMessage(m interface{}) uint64 {
 	bs := make([]byte, 4)
 	binary.LittleEndian.PutUint32(bs, uint32(0))
 	bend := append(bs, b...)
-	bend = append(bend, []byte(ENDLINE)...)
+	bend = append(bend, []byte(zu.ENDLINE)...)
 	c.chans <- bend
 	return 0
 }
 
 func (c *TcpClient) SendMessageFake() {
-	c.chans <- []byte(ENDLINE)
+	c.chans <- []byte(zu.ENDLINE)
 }
 
 func (c *TcpClient) SendMessageFakeV2() {
-	bend := append([]byte("How are you today baby"), []byte(ENDLINE)...)
+	bend := append([]byte("How are you today baby"), []byte(zu.ENDLINE)...)
 	c.chans <- bend
 }
 
 func ClientStart(addr string) {
-	var tcpClient [NCpu]*TcpClient
-	for i := 0; i < NCpu; i++ {
+	var tcpClient [zu.NCpu]*TcpClient
+	for i := 0; i < zu.NCpu; i++ {
 		tcpClient[i] = NewTcpClient(addr)
 	}
 
@@ -128,17 +129,17 @@ func ClientStart(addr string) {
 	// msg := message.Message{MessageId: 6592524830872596483, GroupId: 382068771122178, Data: decodedByteArray, Flags: 0, CreatedAt: 1661949156780615}
 	// tcpClient[thread].SendMessage(msg)
 	logrus.Warnf("TEST 30M EMPTY")
-	zbench.Run(NRun, NCpu, func(i, thread int) {
+	zbench.Run(zu.NRun, zu.NCpu, func(i, thread int) {
 		tcpClient[thread].SendMessageFake()
 	})
 
 	logrus.Warnf("TEST 30M EMPTY")
-	zbench.Run(NRun, NCpu, func(i, thread int) {
+	zbench.Run(zu.NRun, zu.NCpu, func(i, thread int) {
 		tcpClient[thread].SendMessageFake()
 	})
 
 	logrus.Warnf("TEST 30M - How are you today baby")
-	zbench.Run(NRun, NCpu, func(i, thread int) {
+	zbench.Run(zu.NRun, zu.NCpu, func(i, thread int) {
 		tcpClient[thread].SendMessageFakeV2()
 	})
 

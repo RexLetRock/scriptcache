@@ -1,4 +1,4 @@
-package ztcp
+package ztcputil
 
 import (
 	"bufio"
@@ -19,7 +19,7 @@ type PerformanceCounter struct {
 }
 
 func PerformanceCounterCreate(step int, timeToShow int, prefix string) *PerformanceCounter {
-	ctime := now()
+	ctime := Now()
 	step64 := int64(step)
 	p := &PerformanceCounter{
 		stime:   ctime,
@@ -42,16 +42,16 @@ func PerformanceCounterCreate(step int, timeToShow int, prefix string) *Performa
 func (s *PerformanceCounter) Step(show ...bool) {
 	s.counter += 1
 	if s.counter == 1 {
-		s.ctime = now()
+		s.ctime = Now()
 		s.ltime = s.ctime
 		s.stime = s.ltime
 	}
 
 	if s.counter >= s.nstep {
-		tmpTime := now()
+		tmpTime := Now()
 		s.nstep += s.step
 		if len(show) != 0 && show[0] {
-			fmt.Printf("%v : %v opts in %vms, %v/sec, %v ns/op \n", s.prefix, commaize(s.counter), (tmpTime-s.stime)/int64(time.Millisecond), commaize(s.step*BILL/(tmpTime-s.ctime)), (tmpTime-s.stime)/s.counter)
+			fmt.Printf("%v : %v opts in %vms, %v/sec, %v ns/op \n", s.prefix, Commaize(s.counter), (tmpTime-s.stime)/int64(time.Millisecond), Commaize(s.step*BILL/(tmpTime-s.ctime)), (tmpTime-s.stime)/s.counter)
 		}
 		s.ltime = s.ctime
 		s.ctime = tmpTime
@@ -59,18 +59,18 @@ func (s *PerformanceCounter) Step(show ...bool) {
 }
 
 func (s *PerformanceCounter) Result() {
-	tmpTime := now()
+	tmpTime := Now()
 	if s.ctime != s.stime {
 		tmpTime = s.ctime
 	}
-	fmt.Printf("%v : %v opts in %vms, %v/sec, %v ns/op \n", s.prefix, commaize(s.counter), (tmpTime-s.stime)/int64(time.Millisecond), commaize(s.counter*BILL/(tmpTime-s.stime)), (tmpTime-s.stime)/s.counter)
+	fmt.Printf("%v : %v opts in %vms, %v/sec, %v ns/op \n", s.prefix, Commaize(s.counter), (tmpTime-s.stime)/int64(time.Millisecond), Commaize(s.counter*BILL/(tmpTime-s.stime)), (tmpTime-s.stime)/s.counter)
 }
 
-func now() int64 {
+func Now() int64 {
 	return time.Now().UnixNano()
 }
 
-func commaize(n int64) string {
+func Commaize(n int64) string {
 	s1, s2 := fmt.Sprintf("%d", n), ""
 	for i, j := len(s1)-1, 0; i >= 0; i, j = i-1, j+1 {
 		if j%3 == 0 && j != 0 {
@@ -81,7 +81,7 @@ func commaize(n int64) string {
 	return s2
 }
 
-func readWithEnd(reader *bufio.Reader) ([]byte, error) {
+func ReadWithEnd(reader *bufio.Reader) ([]byte, error) {
 	message, err := reader.ReadBytes('#')
 	if err != nil {
 		return nil, err
@@ -93,7 +93,7 @@ func readWithEnd(reader *bufio.Reader) ([]byte, error) {
 	}
 	message = append(message, a1)
 	if a1 != '\t' {
-		message2, err := readWithEnd(reader)
+		message2, err := ReadWithEnd(reader)
 		if err != nil {
 			return nil, err
 		}
@@ -107,7 +107,7 @@ func readWithEnd(reader *bufio.Reader) ([]byte, error) {
 	}
 	message = append(message, a2)
 	if a2 != '#' {
-		message2, err := readWithEnd(reader)
+		message2, err := ReadWithEnd(reader)
 		if err != nil {
 			return nil, err
 		}

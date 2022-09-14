@@ -1,4 +1,4 @@
-package ztcp
+package ztcpserver
 
 import (
 	"bufio"
@@ -7,14 +7,14 @@ import (
 	"net"
 	"time"
 
-	_ "github.com/go-sql-driver/mysql"
+	zu "github.com/RexLetRock/scriptcache/ztcp/ztcputil"
 )
 
 const ThreadPerConn = 5
 const countSize = 100_000
 const connHost = "0.0.0.0:9000"
 
-var pCounter = PerformanceCounterCreate(countSize, 0, "SERVER RUN")
+var pCounter = zu.PerformanceCounterCreate(countSize, 0, "SERVER RUN")
 
 func ServerStart() {
 	listener, err := net.Listen("tcp", connHost)
@@ -63,9 +63,9 @@ type ConnHandle struct {
 
 func ConnHandleCreate(conn net.Conn) *ConnHandle {
 	s := &ConnHandle{
-		chans:  make(chan []byte, cChansSize),
-		flush:  make(chan []byte, cChansSize),
-		buffer: make([]byte, cChansSize),
+		chans:  make(chan []byte, zu.ChansSize),
+		flush:  make(chan []byte, zu.ChansSize),
+		buffer: make([]byte, zu.ChansSize),
 		conn:   conn,
 	}
 	s.readerReq, s.writerReq = io.Pipe()
@@ -73,7 +73,7 @@ func ConnHandleCreate(conn net.Conn) *ConnHandle {
 	// Timetoflush
 	go func() {
 		for {
-			time.Sleep(cTimeToFlush)
+			time.Sleep(zu.TimeToFlush)
 			s.flush <- []byte{1}
 		}
 	}()
@@ -82,7 +82,7 @@ func ConnHandleCreate(conn net.Conn) *ConnHandle {
 	go func() {
 		reader := bufio.NewReader(s.readerReq)
 		for {
-			msg, _ := readWithEnd(reader)
+			msg, _ := zu.ReadWithEnd(reader)
 			s.chans <- msg
 		}
 	}()
@@ -95,7 +95,8 @@ func ConnHandleCreate(conn net.Conn) *ConnHandle {
 			case msg := <-s.chans:
 				s.slice = append(s.slice, msg...)
 				cSend += 1
-				if cSend >= cSendSize {
+				pCounter.Step()
+				if cSend >= zu.SendSize {
 					go s.conn.Write(s.slice)
 					s.slice = []byte{}
 					cSend = 0

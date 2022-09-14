@@ -3,18 +3,19 @@ package main
 import (
 	"time"
 
-	tcp "github.com/RexLetRock/scriptcache/ztcp"
+	"github.com/RexLetRock/scriptcache/ztcp/ztcpclient"
+	"github.com/RexLetRock/scriptcache/ztcp/ztcpserver"
 )
 
 const connHost = "127.0.0.1:19999"
 
 func main() {
-	go tcp.ServerStartViaOptions(connHost)
 	// go zgnet.MainGnet()
-
 	// go zevio.MainEvio()
+
+	go ztcpserver.ServerStartViaOptions(connHost)
 	time.Sleep(2 * time.Second)
-	tcp.ClientStart(connHost)
+	ztcpclient.ClientStart(connHost)
 
 	select {}
 }
