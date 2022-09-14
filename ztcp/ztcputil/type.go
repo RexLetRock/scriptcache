@@ -3,7 +3,7 @@ package ztcputil
 import "time"
 
 const NCpu = 60
-const NRun = 30_000_000
+const NRun = 50_000_000
 const ENDLINE = "#\t#"
 
 const SendSize = 10_000

@@ -124,10 +124,7 @@ func ClientStart(addr string) {
 		tcpClient[i] = NewTcpClient(addr)
 	}
 
-	// decodedByteArray, _ := hex.DecodeString("0883E0E9E8FACCD6BE5B1082D8878BD5EF561A0B48656C6C6F206B6974747920DCC0C98080804028C7D4FF888BF1F9024215DCC0C980808040F3C29080808040EF8180808080409001029A010D31363631393439313331323636")
-	// decodedByteArray := []byte{}
-	// msg := message.Message{MessageId: 6592524830872596483, GroupId: 382068771122178, Data: decodedByteArray, Flags: 0, CreatedAt: 1661949156780615}
-	// tcpClient[thread].SendMessage(msg)
+	logrus.Warnf("CLIENT ---msg---> SERVER ---msg---> CLIENT count(msg)")
 	logrus.Warnf("TEST 30M EMPTY")
 	zbench.Run(zu.NRun, zu.NCpu, func(i, thread int) {
 		tcpClient[thread].SendMessageFake()
@@ -143,7 +140,7 @@ func ClientStart(addr string) {
 		tcpClient[thread].SendMessageFakeV2()
 	})
 
-	time.Sleep(10 * time.Second)
-	logrus.Warnf("Msg count %v \n", count.Value())
+	time.Sleep(5 * time.Second)
+	logrus.Warnf("Client receive and count %v msg \n", zu.Commaize(count.Value()))
 
 }
