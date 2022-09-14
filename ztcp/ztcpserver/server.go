@@ -7,6 +7,7 @@ import (
 	"net"
 	"time"
 
+	"github.com/RexLetRock/scriptcache/libs/zcount"
 	zu "github.com/RexLetRock/scriptcache/ztcp/ztcputil"
 )
 
@@ -15,6 +16,7 @@ const countSize = 100_000
 const connHost = "0.0.0.0:9000"
 
 var pCounter = zu.PerformanceCounterCreate(countSize, 0, "SERVER RUN")
+var counter zcount.Counter
 
 func ServerStart() {
 	listener, err := net.Listen("tcp", connHost)
@@ -74,7 +76,7 @@ func ConnHandleCreate(conn net.Conn) *ConnHandle {
 	go func() {
 		for {
 			time.Sleep(zu.TimeToFlush)
-			s.flush <- []byte{1}
+			s.flush <- []byte{}
 		}
 	}()
 
@@ -93,6 +95,7 @@ func ConnHandleCreate(conn net.Conn) *ConnHandle {
 		for {
 			select {
 			case msg := <-s.chans:
+				counter.Inc()
 				s.slice = append(s.slice, msg...)
 				cSend += 1
 				if cSend >= zu.SendSize {
@@ -101,6 +104,7 @@ func ConnHandleCreate(conn net.Conn) *ConnHandle {
 					cSend = 0
 				}
 			case <-s.flush:
+				// logrus.Warnf("COUNTER %v \n", counter.Value())
 				if len(s.slice) > 0 {
 					go s.conn.Write(s.slice)
 					s.slice = []byte{}
