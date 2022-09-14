@@ -16,6 +16,7 @@ import (
 )
 
 var count zcount.Counter
+var msgf2 = "How are you today ?" // Beware of memleak because buffer
 
 type TcpClient struct {
 	conn   net.Conn
@@ -114,7 +115,7 @@ func (c *TcpClient) SendMessageFake() {
 }
 
 func (c *TcpClient) SendMessageFakeV2() {
-	bend := append([]byte("How are you today baby"), []byte(zu.ENDLINE)...)
+	bend := append([]byte(msgf2), []byte(zu.ENDLINE)...)
 	c.chans <- bend
 }
 
@@ -125,17 +126,17 @@ func ClientStart(addr string) {
 	}
 
 	logrus.Warnf("CLIENT ---msg---> SERVER ---msg---> CLIENT count(msg)")
-	logrus.Warnf("TEST 30M EMPTY")
+	logrus.Warnf("Send 50M msg - empty")
 	zbench.Run(zu.NRun, zu.NCpu, func(i, thread int) {
 		tcpClient[thread].SendMessageFake()
 	})
 
-	logrus.Warnf("TEST 30M EMPTY")
+	logrus.Warnf("Send 50M msg - empty")
 	zbench.Run(zu.NRun, zu.NCpu, func(i, thread int) {
 		tcpClient[thread].SendMessageFake()
 	})
 
-	logrus.Warnf("TEST 30M - How are you today baby")
+	logrus.Warnf("Send 50M msg - %v ?", msgf2)
 	zbench.Run(zu.NRun, zu.NCpu, func(i, thread int) {
 		tcpClient[thread].SendMessageFakeV2()
 	})
