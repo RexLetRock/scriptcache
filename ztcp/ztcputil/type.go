@@ -8,4 +8,4 @@ const ENDLINE = "#\t#"
 
 const SendSize = 10_000
 const ChansSize = 1024 * 100
-const TimeToFlush = 100 * time.Microsecond
+const TimeToFlush = 10 * time.Microsecond
