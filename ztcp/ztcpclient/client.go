@@ -65,6 +65,11 @@ func ClientStart(addr string) {
 		tcpClient[thread].SendMessageFakeV2()
 	})
 
+	logrus.Warnf("Send 5M msg - empty - channel - multi-single thread")
+	zbench.Run(zu.NRun/10, zu.NCpu, func(i, thread int) {
+		tcpClient[0].SendMessageFake()
+	})
+
 	time.Sleep(5 * time.Second)
 	logrus.Warnf("Client receive and count %v msg \n", zu.Commaize(count.Value()))
 
