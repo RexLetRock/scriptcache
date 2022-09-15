@@ -1,7 +1,6 @@
 package ztcpclient
 
 import (
-	"bufio"
 	"encoding/binary"
 	"time"
 
@@ -14,31 +13,31 @@ func (s *TcpClient) startSendloop() {
 	go func() {
 		for {
 			time.Sleep(zu.TimeToFlush)
-			s.flush <- []byte{}
+			s.flush <- []byte{1}
 		}
 	}()
-	s.sendThroughBuffer()
+	s.startSendloopViaChannel()
 }
 
-func (s *TcpClient) sendThroughBuffer() {
-	b := bufio.NewReader(s.sendReader)
-	send := 0
-	if b != nil && send != 0 {
-
+func (s *TcpClient) startSendloopViaChannel() {
+	cSend := 0
+	for {
+		select {
+		case msg := <-s.chans:
+			cSend += 1
+			s.slice = append(s.slice, msg...)
+			if cSend >= zu.SendSize {
+				go s.conn.Write(s.slice)
+				s.slice = []byte{}
+				cSend = 0
+			}
+		case <-s.flush:
+			if len(s.slice) > 0 {
+				go s.conn.Write((s.slice))
+				s.slice = []byte{}
+			}
+		}
 	}
-
-	// for {
-	// 	v, _, err := b.()
-	// 	if err == io.EOF {
-	// 		break
-	// 	}
-	// 	if err != nil {
-	// 		panic(err)
-	// 	}
-	// 	send++
-	// 	s.sendBuffer = append(s.sendBuffer, v...)
-	// 	println("The value is " + string(v))
-	// }
 }
 
 func (s *TcpClient) SendBinary(data []byte) {
@@ -53,27 +52,6 @@ func (s *TcpClient) SendMessage(m interface{}) uint64 {
 	bend = append(bend, []byte(zu.ENDLINE)...)
 	s.chans <- bend
 	return 0
-}
-
-func (s *TcpClient) SendMessageFakeViaBuffer() {
-	s.sendCount += 1
-	s.sendBuffer = append(s.sendBuffer, []byte(zu.ENDLINE)...)
-	if s.sendCount >= zu.SendSize {
-		s.conn.Write(s.sendBuffer)
-		s.sendBuffer = []byte{}
-		s.sendCount = 0
-	}
-}
-
-func (s *TcpClient) SendMessageFakeViaBufferV2() {
-	s.sendCount += 1
-	msg := append([]byte(msgf2), []byte(zu.ENDLINE)...)
-	s.sendBuffer = append(s.slice, msg...)
-	if s.sendCount >= zu.SendSize {
-		s.conn.Write(s.sendBuffer)
-		s.sendBuffer = []byte{}
-		s.sendCount = 0
-	}
 }
 
 func (s *TcpClient) SendMessageFake() {

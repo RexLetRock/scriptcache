@@ -2,7 +2,7 @@ package ztcputil
 
 import "time"
 
-const NCpu = 60
+const NCpu = 12
 const NRun = 50_000_000
 const ENDLINE = "#\t#"
 

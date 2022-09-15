@@ -1,6 +1,7 @@
 package ztcpclient
 
 import (
+	"bufio"
 	"io"
 	"net"
 	"time"
@@ -26,10 +27,7 @@ type TcpClient struct {
 	reader *io.PipeReader
 	writer *io.PipeWriter
 
-	sendCount  int
-	sendBuffer []byte
-	sendReader *io.PipeReader
-	sendWriter *io.PipeWriter
+	sendWriter *bufio.Writer
 }
 
 func NewTcpClient(addr string) *TcpClient {
@@ -41,8 +39,9 @@ func NewTcpClient(addr string) *TcpClient {
 	}
 
 	s.conn, _ = net.Dial("tcp", addr)
+	s.sendWriter = bufio.NewWriter(s.conn)
 	s.reader, s.writer = io.Pipe()
-	s.sendReader, s.sendWriter = io.Pipe()
+	// s.sendReader, s.sendWriter = io.Pipe()
 
 	go s.startTakeloop()
 	go s.startSendloop()
@@ -56,32 +55,17 @@ func ClientStart(addr string) {
 	}
 
 	logrus.Warnf("CLIENT ---msg---> SERVER ---msg---> CLIENT count(msg)")
-	// logrus.Warnf("Send 50M msg - empty - channel")
-	// zbench.Run(zu.NRun, zu.NCpu, func(i, thread int) {
-	// 	tcpClient[thread].SendMessageFake()
-	// })
-
-	// logrus.Warnf("Send 50M msg - %v", msgf2)
-	// zbench.Run(zu.NRun, zu.NCpu, func(i, thread int) {
-	// 	tcpClient[thread].SendMessageFakeV2()
-	// })
-
-	logrus.Warnf("Send 50M msg - empty - buffer - single thread")
-	zbench.Run(zu.NRun, 1, func(i, thread int) {
-		tcpClient[thread].SendMessageFakeViaBuffer()
-	})
-
-	logrus.Warnf("Send 50M msg - empty - buffer")
+	logrus.Warnf("Send 50M msg - empty - channel")
 	zbench.Run(zu.NRun, zu.NCpu, func(i, thread int) {
-		tcpClient[thread].SendMessageFakeViaBuffer()
+		tcpClient[thread].SendMessageFake()
 	})
 
-	// logrus.Warnf("Send 50M msg - empty - buffer")
-	// zbench.Run(zu.NRun, zu.NCpu, func(i, thread int) {
-	// 	tcpClient[thread].SendMessageFakeViaBufferV2()
-	// })
+	logrus.Warnf("Send 50M msg - %v", msgf2)
+	zbench.Run(zu.NRun, zu.NCpu, func(i, thread int) {
+		tcpClient[thread].SendMessageFakeV2()
+	})
 
-	time.Sleep(10 * time.Second)
+	time.Sleep(5 * time.Second)
 	logrus.Warnf("Client receive and count %v msg \n", zu.Commaize(count.Value()))
 
 }
