@@ -13,4 +13,5 @@ require (
 	github.com/tidwall/evio v1.0.8
 	github.com/tidwall/uhaha v0.11.1
 	github.com/vmihailenco/msgpack/v5 v5.3.5 // indirect
+	golang.org/x/sys v0.0.0-20220715151400-c0bba94af5f8 // indirect
 )

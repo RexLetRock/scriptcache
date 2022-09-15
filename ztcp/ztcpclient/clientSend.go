@@ -14,7 +14,7 @@ func (s *TcpClient) startSendloop() {
 	go func() {
 		for {
 			time.Sleep(zu.TimeToFlush)
-			s.flush <- []byte{1}
+			s.flush <- []byte{}
 		}
 	}()
 	s.sendThroughBuffer()
