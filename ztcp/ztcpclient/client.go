@@ -66,6 +66,11 @@ func ClientStart(addr string) {
 	// 	tcpClient[thread].SendMessageFakeV2()
 	// })
 
+	logrus.Warnf("Send 50M msg - empty - buffer - single thread")
+	zbench.Run(zu.NRun, 1, func(i, thread int) {
+		tcpClient[thread].SendMessageFakeViaBuffer()
+	})
+
 	logrus.Warnf("Send 50M msg - empty - buffer")
 	zbench.Run(zu.NRun, zu.NCpu, func(i, thread int) {
 		tcpClient[thread].SendMessageFakeViaBuffer()

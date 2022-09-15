@@ -26,6 +26,7 @@ func (s *TcpClient) sendThroughBuffer() {
 	if b != nil && send != 0 {
 
 	}
+
 	// for {
 	// 	v, _, err := b.()
 	// 	if err == io.EOF {
