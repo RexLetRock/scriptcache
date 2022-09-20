@@ -1,84 +1,59 @@
 package zbuffer
 
 import (
-	"fmt"
-
-	"github.com/RexLetRock/zlib/zgoid"
 	"github.com/RexLetRock/zlib/ztime"
-	"github.com/sirupsen/logrus"
 )
 
 const (
-	CMaxCpu       = 1000
-	CMaxBuffSize  = 1024 * 100
-	CMaxChannSize = 1024
+	CPremakeCell  = 2
+	CMaxCpu       = 1000 // Goroutine hash
+	CMaxChannSize = 1024 // 1024 * 1kb
+	CMaxBuffSize  = 1024 // 1kb
 
-	CTimeDiff = 1_000_000 // Milisec to clean old data
+	CTimeDiff         = 1_000_000 // Milisec to clean old data
+	CTimeDiffWrite    = 1_000
+	CTimeStopStart    = 10 // At 0 - 10 - 20 micro
+	CTimeStopDuration = 5  // Sleep 5 Micro
+	CTimeStopRange    = 5
 )
 
 type ZBuffer struct {
-	Cells     [CMaxCpu]ZCell
-	dataCount [CMaxCpu]int
-	celldup   ConcurrentMap
+	Cells   [CMaxCpu]*ZCell
+	Factory [CMaxCpu]*ZCellFactory
+	Channs  [CMaxCpu]chan []byte
 
-	Chann chan []byte
-}
-
-type ZCell struct {
-	data      []byte
-	dataCount int
-	name      uint16
-	time      int64
-
-	Chann chan []byte
+	celldup ConcurrentMap
+	gtime   ztime.Fastime
 }
 
 func ZBufferCreate() *ZBuffer {
-	s := &ZBuffer{
-		celldup: CMapCreate(),
-		Chann:   make(chan []byte, 1024),
+	var factory [CMaxCpu]*ZCellFactory
+	for i := 0; i < CMaxCpu; i++ {
+		factory[i] = ZCellFactoryCreate(uint16(i))
 	}
-
-	go s.startPullDataLoop()
+	s := &ZBuffer{
+		Factory: factory,
+		celldup: CMapCreate(),
+		gtime:   ztime.New(),
+	}
 	return s
 }
 
-func (s *ZBuffer) startPullDataLoop() {
-	for {
-		s.startPullData()
-	}
-}
-
-func (s *ZBuffer) startPullData() {
-	for i := 0; i < CMaxCpu; i++ {
-		pCell := s.Cells[i]
-		if pCell.name != 0 {
-			select {
-			case x, ok := <-pCell.Chann:
-				if ok {
-					s.Chann <- x
-				}
-			default: //logrus.Warnf("No value ready, moving on.")
-			}
-		}
-	}
-}
-
 func (s *ZBuffer) Write(data []byte) {
-	pData, gid := s.getCell()
-	pData.time = ztime.UnixNanoNow()
+	pData := s.getCell()
 	lenData := len(data)
 	newDataCount := pData.dataCount + lenData
 
 	// Buffer overflow
 	if newDataCount >= CMaxBuffSize {
+		tmp := pData.data[:pData.dataCount]
 		pData.dataCount = 0
 		newDataCount = lenData
-		tmpData := pData.data[:]
 		select {
-		case pData.Chann <- tmpData:
+		case pData.chann <- tmp:
 		default:
-			logrus.Errorf("Channel overflow %v \n", gid)
+			pData = s.getCellNew()
+			pData.chann <- tmp
 		}
 	}
 
@@ -86,62 +61,16 @@ func (s *ZBuffer) Write(data []byte) {
 	pData.dataCount = newDataCount
 }
 
-func (s *ZBuffer) Read() {
-}
-
-func (s *ZBuffer) Show() {
-	for i, v := range s.Cells {
-		if s.dataCount[i] > 0 {
-			logrus.Warnf("INFO %v", string(v.data[:s.dataCount[i]]))
-		}
-	}
-}
-
-func (s *ZBuffer) getGID() (id uint16, gid uint16) {
-	gid = uint16(zgoid.Get())
-	if gid >= CMaxCpu {
-		id = gid % CMaxCpu
-	} else {
-		id = gid
-	}
-	return
-}
-
-func (s *ZBuffer) getCell() (rCell *ZCell, gid uint16) {
+func (s *ZBuffer) getCell() *ZCell {
 	id, gid := s.getGID()
-	pCell := &s.Cells[id]
-	rCell = pCell
-
-	// Not init yes
-	time := ztime.UnixNanoNow()
-	if pCell.name == 0 || time-pCell.time > CTimeDiff {
-		pCell.time = time
-		pCell.name = gid
-		pCell.data = make([]byte, CMaxBuffSize)
-		pCell.Chann = make(chan []byte, CMaxChannSize)
-	} else if pCell.name != gid {
-		rCell = s.getCellDup(gid)
+	if s.Cells[id] == nil {
+		s.Cells[id] = s.Factory[id].GetCell(gid)
 	}
-
-	return
+	return s.Cells[id]
 }
 
-func (s *ZBuffer) getCellDup(gid uint16) (rCell *ZCell) {
-	key := fmt.Sprintf("%v", gid)
-	pCell, _ := s.celldup.Get(key)
-	if pCell == nil {
-		rCell = &ZCell{
-			name:  gid,
-			data:  make([]byte, CMaxBuffSize),
-			Chann: make(chan []byte, CMaxChannSize),
-		}
-		s.celldup.Set(key, rCell)
-	} else {
-		rCell = pCell.(*ZCell)
-	}
-	return
-}
-
-func (s *ZCell) Name() uint16 {
-	return s.name
+func (s *ZBuffer) getCellNew() *ZCell {
+	id, gid := s.getGID()
+	s.Cells[id] = s.Factory[id].GetCell(gid)
+	return s.Cells[id]
 }
