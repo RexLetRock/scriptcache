@@ -4,7 +4,6 @@ go 1.18
 
 require (
 	github.com/RexLetRock/zlib v0.0.0-20220824093749-9d1b792eb9ea
-	github.com/alphadose/zenq v0.0.0-20220618041920-b6f84b277e4a
 	github.com/gobwas/ws v1.1.0
 	github.com/panjf2000/gnet v1.6.6
 	github.com/sirupsen/logrus v1.9.0
@@ -32,8 +31,6 @@ require (
 	github.com/kavu/go_reuseport v1.5.0 // indirect
 	github.com/mattn/go-colorable v0.1.4 // indirect
 	github.com/mattn/go-isatty v0.0.10 // indirect
-	github.com/pkg/errors v0.9.1 // indirect
-	github.com/stretchr/testify v1.7.1 // indirect
 	github.com/syndtr/goleveldb v1.0.0 // indirect
 	github.com/tidwall/btree v1.3.1 // indirect
 	github.com/tidwall/match v1.1.1 // indirect

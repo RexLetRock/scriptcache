@@ -1,83 +1,147 @@
 package zbuffer
 
 import (
-	"sync/atomic"
-	"unsafe"
+	"fmt"
 
-	"github.com/panjf2000/gnet/pkg/pool/ringbuffer"
-	"golang.org/x/sys/cpu"
+	"github.com/RexLetRock/zlib/zgoid"
+	"github.com/RexLetRock/zlib/ztime"
+	"github.com/sirupsen/logrus"
 )
 
 const (
-	// Number of cells in each chunk. the size is larger than usual CPU cores to reduce hash conflict.
-	numChunkCells = 100
-	// Number of int64s in each cell. there are 2 pad fields, it should not be too small to avoid waste memory.
-	// #nosec G103
-	cellCapacity = 6 * unsafe.Sizeof(cpu.CacheLinePad{}) / 8
+	CMaxCpu       = 1000
+	CMaxBuffSize  = 1024 * 100
+	CMaxChannSize = 1024
+
+	CTimeDiff = 1_000_000 // Milisec to clean old data
 )
 
-// Int64 is an int64 atomic counter.
 type ZBuffer struct {
-	cells *[numChunkCells]cell
-	index uintptr // index to the n array in each cell
+	Cells     [CMaxCpu]ZCell
+	dataCount [CMaxCpu]int
+	celldup   ConcurrentMap
+
+	Chann chan []byte
 }
 
-// cell is a value container for each cpu core.
-type cell struct {
-	// We have no way to ensure cache line aligned allocations. so the 2 pads are necessary.
-	_ cpu.CacheLinePad
-	// The sizeof(cell) shuld be integer multiple of sizeof(cpu.CacheLinePad) to avoid false sharing.
-	n [cellCapacity]*ringbuffer.RingBuffer //  ringbuffer.New(1024 * 1000)
-	_ cpu.CacheLinePad
+type ZCell struct {
+	data      []byte
+	dataCount int
+	name      uint16
+	time      int64
+
+	Chann chan []byte
 }
 
-// chunk is used to saves memory by sharing cells between multiple Int64s
-type chunk struct {
-	cells     [numChunkCells]cell
-	nextIndex uintptr
-}
-
-// allocate a new Int64 from the chunk.
-func (st *chunk) allocate() ZBuffer {
-	for i := atomic.LoadUintptr(&st.nextIndex); i+1 < cellCapacity && atomic.CompareAndSwapUintptr(&st.nextIndex, i, i+1); {
-		return ZBuffer{&st.cells, i}
+func ZBufferCreate() *ZBuffer {
+	s := &ZBuffer{
+		celldup: CMapCreate(),
+		Chann:   make(chan []byte, 1024),
 	}
-	return ZBuffer{nil, 0}
+
+	go s.startPullDataLoop()
+	return s
 }
 
-// newChunk creates a new chunk.
-func newChunk() *chunk {
-	return &chunk{}
+func (s *ZBuffer) startPullDataLoop() {
+	for {
+		s.startPullData()
+	}
 }
 
-// the last create chunk. atomic.Pointer is better but it's unavailable until go1.19.
-var lastChunk atomic.Value
-
-// MakeInt64 creates a new Int64 object.
-// Int64 objects must be created by this function, simply initialized doesn't work.
-func MakeInt64() ZBuffer {
-	ch, ok := lastChunk.Load().(*chunk)
-	if ok {
-		ret := ch.allocate()
-		if ret.cells != nil {
-			return ret
+func (s *ZBuffer) startPullData() {
+	for i := 0; i < CMaxCpu; i++ {
+		pCell := s.Cells[i]
+		if pCell.name != 0 {
+			select {
+			case x, ok := <-pCell.Chann:
+				if ok {
+					s.Chann <- x
+				}
+			default: //logrus.Warnf("No value ready, moving on.")
+			}
 		}
 	}
-	ch = newChunk()
-	ret := ch.allocate() // Must be success because there are no race
-	lastChunk.Store(ch)
-	return ret
 }
 
-//go:linkname getm runtime.getm
-func getm() uintptr
+func (s *ZBuffer) Write(data []byte) {
+	pData, gid := s.getCell()
+	pData.time = ztime.UnixNanoNow()
+	lenData := len(data)
+	newDataCount := pData.dataCount + lenData
 
-//go:noescape
-//go:linkname memhash runtime.memhash
-func memhash(p unsafe.Pointer, h, s uintptr) uintptr
+	// Buffer overflow
+	if newDataCount >= CMaxBuffSize {
+		pData.dataCount = 0
+		newDataCount = lenData
+		tmpData := pData.data[:]
+		select {
+		case pData.Chann <- tmpData:
+		default:
+			logrus.Errorf("Channel overflow %v \n", gid)
+		}
+	}
 
-func ThreadHash() uint {
-	m := getm()
-	// #nosec G103
-	return uint(memhash(unsafe.Pointer(&m), 0, unsafe.Sizeof(m)))
+	copy(pData.data[pData.dataCount:newDataCount], data)
+	pData.dataCount = newDataCount
+}
+
+func (s *ZBuffer) Read() {
+}
+
+func (s *ZBuffer) Show() {
+	for i, v := range s.Cells {
+		if s.dataCount[i] > 0 {
+			logrus.Warnf("INFO %v", string(v.data[:s.dataCount[i]]))
+		}
+	}
+}
+
+func (s *ZBuffer) getGID() (id uint16, gid uint16) {
+	gid = uint16(zgoid.Get())
+	if gid >= CMaxCpu {
+		id = gid % CMaxCpu
+	} else {
+		id = gid
+	}
+	return
+}
+
+func (s *ZBuffer) getCell() (rCell *ZCell, gid uint16) {
+	id, gid := s.getGID()
+	pCell := &s.Cells[id]
+	rCell = pCell
+
+	// Not init yes
+	time := ztime.UnixNanoNow()
+	if pCell.name == 0 || time-pCell.time > CTimeDiff {
+		pCell.time = time
+		pCell.name = gid
+		pCell.data = make([]byte, CMaxBuffSize)
+		pCell.Chann = make(chan []byte, CMaxChannSize)
+	} else if pCell.name != gid {
+		rCell = s.getCellDup(gid)
+	}
+
+	return
+}
+
+func (s *ZBuffer) getCellDup(gid uint16) (rCell *ZCell) {
+	key := fmt.Sprintf("%v", gid)
+	pCell, _ := s.celldup.Get(key)
+	if pCell == nil {
+		rCell = &ZCell{
+			name:  gid,
+			data:  make([]byte, CMaxBuffSize),
+			Chann: make(chan []byte, CMaxChannSize),
+		}
+		s.celldup.Set(key, rCell)
+	} else {
+		rCell = pCell.(*ZCell)
+	}
+	return
+}
+
+func (s *ZCell) Name() uint16 {
+	return s.name
 }
