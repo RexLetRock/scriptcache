@@ -44,7 +44,6 @@ func (s *ZBuffer) Write(data []byte) {
 	lenData := len(data)
 	newDataCount := pData.dataCount + lenData
 
-	// Buffer overflow
 	if newDataCount >= CMaxBuffSize {
 		tmp := pData.data[:pData.dataCount]
 		pData.dataCount = 0

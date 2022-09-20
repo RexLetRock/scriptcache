@@ -1,6 +1,9 @@
 package zbuffer
 
-import "github.com/RexLetRock/scriptcache/libs/zcount"
+import (
+	"github.com/RexLetRock/scriptcache/libs/zcount"
+	"github.com/sirupsen/logrus"
+)
 
 type ZCell struct {
 	data      []byte
@@ -25,7 +28,8 @@ func ZCellFactoryCreate(name uint16) *ZCellFactory {
 
 func (s *ZCellFactory) MakeCell(num int) {
 	for i := 0; i < num; i++ {
-		s.makIndex.Inc()
+		val := s.makIndex.Inc()
+		logrus.Warnf("Make cell gid %v : %v", s.name, val)
 		s.Cells = append(s.Cells, &ZCell{
 			name:  s.name,
 			data:  make([]byte, CMaxBuffSize),
