@@ -2,6 +2,7 @@ package zbuffer
 
 import (
 	"encoding/json"
+	"fmt"
 	"sync"
 )
 
@@ -341,3 +342,11 @@ func fnv32(key string) uint32 {
 // 	}
 // 	return nil
 // }
+
+func (m ConcurrentMap) SetIntKey(key int, value interface{}) {
+	m.Set(fmt.Sprintf("%v", key), value)
+}
+
+func (m ConcurrentMap) GetIntKey(key int, value interface{}) (interface{}, bool) {
+	return m.Get(fmt.Sprintf("%v", key))
+}

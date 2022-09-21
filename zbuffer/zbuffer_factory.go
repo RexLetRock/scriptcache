@@ -1,51 +1,68 @@
 package zbuffer
 
 import (
+	"strings"
+
 	"github.com/RexLetRock/scriptcache/libs/zcount"
-	"github.com/sirupsen/logrus"
 )
+
+var cellDataCount zcount.Counter
 
 type ZCell struct {
 	data      []byte
 	dataCount int
 	name      uint16
-
-	chann chan []byte
+	hash      uint16
+	chann     chan []byte
 }
 
 type ZCellFactory struct {
-	Cells    []*ZCell
-	name     uint16
+	Cells    [100_000]*ZCell
 	getIndex zcount.Counter
 	makIndex zcount.Counter
 }
 
-func ZCellFactoryCreate(name uint16) *ZCellFactory {
-	s := &ZCellFactory{name: name}
+func ZCellFactoryCreate() *ZCellFactory {
+	s := &ZCellFactory{}
 	s.MakeCell(CPremakeCell)
 	return s
 }
 
 func (s *ZCellFactory) MakeCell(num int) {
 	for i := 0; i < num; i++ {
-		val := s.makIndex.Inc()
-		logrus.Warnf("Make cell gid %v : %v", s.name, val)
-		s.Cells = append(s.Cells, &ZCell{
-			name:  s.name,
+		s.Cells[s.makIndex.Inc()] = &ZCell{
 			data:  make([]byte, CMaxBuffSize),
 			chann: make(chan []byte, CMaxChannSize),
-		})
+		}
 	}
 }
 
-func (s *ZCellFactory) GetCell(gid uint16) *ZCell {
+func (s *ZCellFactory) GetCell(gid uint16, hash uint16) *ZCell {
 	indexVal := s.getIndex.Inc()
 	pCell := s.Cells[indexVal]
 	pCell.name = gid
+	pCell.hash = hash
 
-	if s.makIndex.Value()-indexVal <= CPremakeCell+1 {
+	if s.makIndex.Value()-indexVal < CPremakeCell+3 {
 		s.MakeCell(CPremakeCell)
 	}
 
 	return pCell
+}
+
+func (s *ZCell) CountData() {
+	a := strings.Split(string(s.data[:s.dataCount]), "|||")
+	cellDataCount.Add(int64(len(a)))
+
+	for {
+		select {
+		case data := <-s.chann:
+			a := strings.Split(string(data), "|||")
+			cellDataCount.Add(int64(len(a)))
+		default:
+			return // logrus.Warnf("End of data %v \n", s.name)
+		}
+	}
+
+	// Destroy cell
 }
