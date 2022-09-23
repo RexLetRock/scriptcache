@@ -85,7 +85,7 @@ func Bench() {
 	logrus.Warnf("==== ZBUFFER ===\n")
 	fmt.Printf("Buffer size: %T, %d\n", zbuffer, unsafe.Sizeof(*zbuffer))
 
-	zbench.Run(50_000_000, 12, func(i, thread int) { // zbuffer.Write([]byte("Hello How Are You Today|||"))
+	zbench.Run(100_000_000, 60, func(i, thread int) { // zbuffer.Write([]byte("Hello How Are You Today|||"))
 		zbuffer.Write([]byte("Hello How Are You Today|||"))
 	})
 
