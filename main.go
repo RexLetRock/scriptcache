@@ -1,15 +1,10 @@
 package main
 
 import (
-	"github.com/RexLetRock/scriptcache/libs/zcount"
 	"github.com/RexLetRock/scriptcache/zbuffer"
 )
 
 const Address = "127.0.0.1:9000"
-const NCpu = 12
-
-var countNum = 0
-var countTotal zcount.Counter
 
 func main() {
 	// go zgnet.MainGnet()
@@ -44,7 +39,7 @@ func main() {
 	// logrus.Errorf("TOTAL SLICE %v \n", countTotal.Value())
 
 	zbuffer.Bench()
-	select {}
+	// select {}
 }
 
 // func readChann(buffer *zbuffer.ZBuffer) {

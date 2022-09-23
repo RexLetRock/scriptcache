@@ -2,144 +2,95 @@ package zbuffer
 
 import (
 	"fmt"
-	"strconv"
 	"time"
+	"unsafe"
 
-	"github.com/RexLetRock/scriptcache/libs/zcount"
-	"github.com/RexLetRock/zlib/ztime"
+	"github.com/RexLetRock/zlib/zbench"
+	"github.com/RexLetRock/zlib/zgoid"
 	"github.com/sirupsen/logrus"
 )
 
 const (
-	CPremakeCell     = 2
-	CMaxCpu          = 1000 // Goroutine hash
-	CMaxChannSize    = 2048 // 1024 * 1kb
-	CMaxBuffSize     = 1024 // 1kb
-	CMaxOldCellChann = 12
+	CMaxCpu      = 1000      // Goroutine hash
+	CMaxBuffSize = 1024 * 10 // 20 * 1kb
+	CTimeToFlush = 3000_000
 )
 
-type ZBuffer struct {
-	Cells       [CMaxCpu]*ZCell
-	Factory     [CMaxCpu]*ZCellFactory
-	Channs      [CMaxOldCellChann]chan *ZCell
-	ChannsIndex zcount.Counter
-
-	cellstime ConcurrentMap
-	celldup   ConcurrentMap
-	gtime     ztime.Fastime
+type Buffer struct {
+	Flush   ConcurrentMap
+	Chann   chan uint16
+	Cells   []*Cell
+	Factory []*Factory
 }
 
-func ZBufferCreate() *ZBuffer {
-	var factory [CMaxCpu]*ZCellFactory
-	for i := 0; i < CMaxCpu; i++ {
-		factory[i] = ZCellFactoryCreate()
+func BufferCreate() *Buffer {
+	s := &Buffer{
+		Flush:   ConcurrentMapCreate(),
+		Chann:   make(chan uint16, CMaxCpu),
+		Cells:   make([]*Cell, CMaxCpu),
+		Factory: FactoryCreateArray(CMaxCpu),
 	}
 
-	var channs [CMaxOldCellChann]chan *ZCell
-	for i := 0; i < CMaxOldCellChann; i++ {
-		channs[i] = make(chan *ZCell, 1024)
-	}
-
-	s := &ZBuffer{
-		Factory:   factory,
-		Channs:    channs,
-		celldup:   CMapCreate(),
-		cellstime: CMapCreate(),
-		gtime:     ztime.New(),
-	}
-
-	go s.startCellChecktimeLoop()
-	go s.startCellChannelLoop()
-	go func() {
-		for {
-			time.Sleep(2 * time.Second) // for i := 0; i < len(s.Factory); i++ { logrus.Warnf("%+v \n", s.Factory[i].Cells) }
-			logrus.Warnf("TotalData %v \n", cellDataCount.Value())
-		}
-	}()
 	return s
 }
 
-func (s *ZBuffer) startCellChecktimeLoop() {
-	for {
-		time.Sleep(time.Millisecond)
-		curTime := ztime.UnixNanoNow()
-		for v := range s.cellstime.IterBuffered() {
-			if curTime-v.Val.(int64) >= 5_000_000 {
-				key, _ := strconv.Atoi(v.Key)
-				s.FlushByTime(s.Cells[key])
-			}
-		}
-	}
-}
-
-func (s *ZBuffer) startCellChannelLoop() {
-	for _, chann := range s.Channs {
-		go func(chann chan *ZCell) {
-			for cell := range chann {
-				cell.CountData()
-				cell = nil
-			}
-		}(chann)
-	}
-}
-
-func (s *ZBuffer) ChannGet() chan *ZCell {
-	return s.Channs[s.ChannsIndex.Inc()%CMaxOldCellChann]
-}
-
-func (s *ZBuffer) FlushByTime(pCell *ZCell) *ZCell {
-	if pCell != nil && pCell.dataCount > 0 {
-		s.ChannGet() <- pCell
-		pCell = s.getCellNewViaID(pCell.hash, pCell.name)
-		pCell.dataCount = 0
-	}
-	return pCell
-}
-
-func (s *ZBuffer) Write(data []byte) {
-	pData := s.getCell()
+func (s *Buffer) Write(data []byte) {
+	cell, id, gid := s.getCell()
 	lenData := len(data)
-	newDataCount := pData.dataCount + lenData
+	newDataCount := cell.dataCount + lenData
 
-	// buffer overflow
 	if newDataCount >= CMaxBuffSize {
-		tmp := pData.data[:pData.dataCount]
-		pData.dataCount = 0
 		newDataCount = lenData
-		select {
-		case pData.chann <- tmp:
-		default:
-			select {
-			case s.ChannGet() <- pData:
-			default:
-				pData = s.getCellNew()
-				// pData.chann <- tmp
-			}
-		}
+		cell = s.getCellNewID(id, gid)
 	}
 
-	copy(pData.data[pData.dataCount:newDataCount], data)
-	pData.dataCount = newDataCount
+	copy(cell.data[cell.dataCount:newDataCount], data)
+	cell.dataCount = newDataCount
 }
 
-func (s *ZBuffer) getCell() *ZCell {
+func (s *Buffer) getCell() (*Cell, uint16, uint16) {
 	id, gid := s.getGID()
 	if s.Cells[id] == nil {
-		s.cellstime.Set(fmt.Sprintf("%v", id), ztime.UnixNanoNow())
 		s.Cells[id] = s.Factory[id].GetCell(gid, id)
 	}
-	return s.Cells[id]
+	return s.Cells[id], id, gid
 }
 
-func (s *ZBuffer) getCellNew() *ZCell {
+func (s *Buffer) getCellNew() *Cell {
 	id, gid := s.getGID()
-	s.cellstime.Set(fmt.Sprintf("%v", id), ztime.UnixNanoNow())
+	return s.getCellNewID(gid, id)
+}
+
+func (s *Buffer) getCellNewID(id uint16, gid uint16) *Cell {
 	s.Cells[id] = s.Factory[id].GetCell(gid, id)
 	return s.Cells[id]
 }
 
-func (s *ZBuffer) getCellNewViaID(id uint16, gid uint16) *ZCell {
-	s.cellstime.Set(fmt.Sprintf("%v", id), ztime.UnixNanoNow())
-	s.Cells[id] = s.Factory[id].GetCell(gid, id)
-	return s.Cells[id]
+func (s *Buffer) getGID() (id uint16, gid uint16) {
+	gid = uint16(zgoid.Get())
+	id = idFromGid(gid)
+	return
+}
+
+func idFromGid(gid uint16) (id uint16) {
+	id = gid
+	if gid >= CMaxCpu {
+		id = gid % CMaxCpu
+	}
+	return
+}
+
+func Bench() {
+	zbuffer := BufferCreate()
+	logrus.Warnf("==== ZBUFFER ===\n")
+	fmt.Printf("Buffer size: %T, %d\n", zbuffer, unsafe.Sizeof(*zbuffer))
+
+	zbench.Run(50_000_000, 12, func(i, thread int) { // zbuffer.Write([]byte("Hello How Are You Today|||"))
+		zbuffer.Write([]byte("Hello How Are You Today|||"))
+	})
+
+	for {
+		time.Sleep(1 * time.Second)
+		logrus.Warnf("Countall %v \n", countAll.Value()+400)
+	}
 }
