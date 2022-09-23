@@ -12,8 +12,8 @@ import (
 
 const (
 	CMaxCpu      = 1000      // Goroutine hash
-	CMaxBuffSize = 1024 * 10 // 20 * 1kb
-	CTimeToFlush = 3000_000
+	CMaxBuffSize = 1024 * 50 // 20 * 1kb
+	CTimeToFlush = 1000
 )
 
 type Buffer struct {

@@ -9,8 +9,8 @@ import (
 )
 
 const CMaxCellPremake = 1
-const CMaxCellCircle = 50 // Number of cell
-const CMaxCellDelta = 45  // This is gap guard , processing and reusing data -> Delta = Circle - Premake
+const CMaxCellCircle = 100 // Number of cell
+const CMaxCellDelta = 90   // This is gap guard , processing and reusing data -> Delta = Circle - Premake
 const CMaxCellOldChannNum = 1
 
 var countAll zcount.Counter
