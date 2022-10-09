@@ -17,12 +17,13 @@ import (
 var count zcount.Counter
 var msgf2 = "How are you today ?" // Beware of memleak because buffer
 
-const CMaxResultBuffer = 1_000_000
+const CMaxResultRetry = 10
 
-var Result [CMaxResultBuffer]*[]byte
+var Result ztcputil.ConcurrentMap // [CMaxResultBuffer]*[]byte
 var ResultIndex ztcputil.Count32
 
 func init() {
+	Result = ztcputil.CMapCreate()
 }
 
 type TcpClient struct {
@@ -55,10 +56,8 @@ func NewTcpClient(addr string) *TcpClient {
 }
 
 type MultiClient struct {
-	o  [zu.CRound]*TcpClient
-	c  ztcputil.Count32
-	R  [CMaxResultBuffer]*[]byte
-	RI ztcputil.Count32
+	o [zu.CRound]*TcpClient
+	c ztcputil.Count32
 }
 
 func MultiClientCreate(addr string) *MultiClient {
@@ -75,15 +74,25 @@ func (s *MultiClient) Get() *TcpClient {
 	return s.o[s.c.IncMax(zu.CRound)]
 }
 
+func (s *MultiClient) SendMessage() string {
+	return s.Get().SendMessage()
+}
+
+func (s *MultiClient) GetMessage(key string) []byte {
+	return s.Get().GetMessage(key)
+}
+
 func ClientStart(addr string) {
 	var tcpClients = MultiClientCreate(addr)
 
 	logrus.Warnf("CLIENT ---msg---> SERVER ---msg---> CLIENT count(msg)")
 	logrus.Warnf("Send 50M msg - %v", msgf2)
 	zbench.Run(zu.NRun, zu.NCpu, func(_, _ int) {
-		tcpClients.Get().SendMessageFakeV3()
+		tcpClients.SendMessage()
 	})
 
-	time.Sleep(3 * time.Second)
+	time.Sleep(5 * time.Second)
+	logrus.Warn(string(tcpClients.GetMessage("8000000")))
+	logrus.Warn(string(tcpClients.GetMessage("8123123")))
 	logrus.Warnf("Client receive and count %v msg \n", zu.Commaize(count.Value()))
 }

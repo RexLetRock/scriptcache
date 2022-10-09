@@ -2,7 +2,6 @@ package ztcpclientv2
 
 import (
 	"bufio"
-	"strconv"
 	"strings"
 
 	zu "github.com/RexLetRock/scriptcache/ztcp/ztcputil"
@@ -18,7 +17,7 @@ func (s *TcpClient) startTakeloop() {
 			}
 
 			if msg != nil {
-				go s.handleMsg(msg)
+				s.handleMsg(msg)
 			}
 		}
 	}()
@@ -36,9 +35,6 @@ func (s *TcpClient) startTakeloop() {
 func (s *TcpClient) handleMsg(msg []byte) {
 	count.Inc()
 	data := strings.Split(string(msg), "|")
-	index, err := strconv.Atoi(data[0])
-	if err != nil {
-		return
-	}
-	Result[index] = &msg
+	Result.Set(data[0], &msg)
+	// Result[index] = &msg
 }
