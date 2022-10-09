@@ -84,6 +84,6 @@ func ClientStart(addr string) {
 		tcpClients.Get().SendMessageFakeV3()
 	})
 
-	time.Sleep(5 * time.Second)
+	time.Sleep(3 * time.Second)
 	logrus.Warnf("Client receive and count %v msg \n", zu.Commaize(count.Value()))
 }
