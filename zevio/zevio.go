@@ -5,8 +5,10 @@ import (
 	"bytes"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/RexLetRock/scriptcache/ztcp/ztcputil"
+	"github.com/sirupsen/logrus"
 	"github.com/tidwall/evio"
 )
 
@@ -17,16 +19,24 @@ const ENDLINE_LENGTH = len(ENDLINE)
 var ENDBYTE = []byte(ENDLINE)
 
 var DataGroup ztcputil.ConcurrentMap // [CMaxResultBuffer]*[]byte
+var DataIP ztcputil.ConcurrentMap
 
 func init() {
 	DataGroup = ztcputil.CMapCreate()
+	DataIP = ztcputil.CMapCreate()
 }
 
 func MainEvio(address string) {
 	var events evio.Events
 	events.Opened = func(c evio.Conn) (out []byte, opts evio.Options, action evio.Action) {
 		c.SetContext(&evio.InputStream{})
-		// logrus.Warnf("New context %+v \n", c.RemoteAddr())
+		logrus.Warnf("New context %+v \n", c.RemoteAddr())
+
+		go func() {
+			time.Sleep(time.Second)
+			// c.Wake()
+		}()
+
 		return
 	}
 
@@ -35,12 +45,15 @@ func MainEvio(address string) {
 	}
 
 	events.Data = func(c evio.Conn, in []byte) (out []byte, action evio.Action) {
+		// When wake
 		if in == nil {
+			logrus.Warn("WAKE UP")
 			return
 		}
 
 		is := c.Context().(*evio.InputStream)
 		data := is.Begin(in)
+
 		if len(data) < ENDLINE_LENGTH {
 			return
 		}

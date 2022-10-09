@@ -7,6 +7,7 @@ type Command int
 const (
 	MessageNew Command = iota
 	MessageEdit
+	MessageBroadcast
 )
 
 func (s Command) Toa() string {
@@ -19,6 +20,8 @@ func (s Command) String() string {
 		return "MessageNew"
 	case MessageEdit:
 		return "MessageEdit"
+	case MessageBroadcast:
+		return "MessageBroadcast"
 	}
 
 	return "Unknown"

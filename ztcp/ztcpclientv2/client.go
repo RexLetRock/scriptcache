@@ -92,9 +92,13 @@ func ClientStart(addr string) {
 	// 	tcpClients.SendMessage(MessageNew.Toa() + zu.FRAMESPLIT + groupID)
 	// })
 
+	// Ticket system
 	logrus.Warn(GetGroupMessageID(tcpClients.GetMessage(tcpClients.SendMessage(MessageNew.Toa() + zu.FRAMESPLIT + groupID))))
 	logrus.Warn(GetGroupMessageID(tcpClients.GetMessage(tcpClients.SendMessage(MessageNew.Toa() + zu.FRAMESPLIT + groupID))))
 	logrus.Warn(GetGroupMessageID(tcpClients.GetMessage(tcpClients.SendMessage(MessageNew.Toa() + zu.FRAMESPLIT + groupID))))
+
+	// Broadcast system
+	tcpClients.SendMessage(MessageNew.Toa() + zu.FRAMESPLIT + groupID)
 
 	logrus.Warnf("Client receive and count %v msg \n", zu.Commaize(count.Value()))
 }

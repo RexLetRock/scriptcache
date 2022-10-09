@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	zu "github.com/RexLetRock/scriptcache/ztcp/ztcputil"
+	"github.com/sirupsen/logrus"
 )
 
 func (s *TcpClient) startTakeloop() {
@@ -17,6 +18,7 @@ func (s *TcpClient) startTakeloop() {
 			}
 
 			if msg != nil {
+				logrus.Warn(string(msg))
 				s.handleMsg(msg)
 			}
 		}
