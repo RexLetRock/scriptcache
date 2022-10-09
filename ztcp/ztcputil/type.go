@@ -3,9 +3,11 @@ package ztcputil
 import "time"
 
 const NCpu = 12
-const NRun = 50_000_000
-const ENDLINE = "#\t#"
+const NRun = 10_000_000
+const ENDLINE = "#\t#" //
+const ENDLINE_LENGTH = len(ENDLINE)
 
-const SendSize = 10_000
-const ChansSize = 1024 * 100
-const TimeToFlush = 1000 * time.Microsecond
+const SendSize = 1000
+const ChanSize = 1000 * 100
+const CRound = 100
+const TimeToFlush = time.Millisecond

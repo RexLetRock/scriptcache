@@ -1,4 +1,4 @@
-package ztcpclient
+package ztcpclientv2
 
 import (
 	"io"
@@ -19,6 +19,9 @@ var msgf2 = "How are you today ?" // Beware of memleak because buffer
 
 const CMaxResultBuffer = 1_000_000
 
+var Result [CMaxResultBuffer]*[]byte
+var ResultIndex ztcputil.Count32
+
 func init() {
 }
 
@@ -28,18 +31,16 @@ type TcpClient struct {
 	flush  chan []byte
 	buffer []byte
 	nframe ztcputil.Count32
-	result [CMaxResultBuffer]*[]byte
 
 	reader *io.PipeReader
 	writer *io.PipeWriter
 }
 
-func NewTcpClient(addr string, result [CMaxResultBuffer]*[]byte) *TcpClient {
+func NewTcpClient(addr string) *TcpClient {
 	s := &TcpClient{
 		chans:  make(chan []byte, zu.ChanSize),
 		flush:  make(chan []byte, 1),
 		buffer: make([]byte, zu.ChanSize),
-		result: result,
 	}
 
 	var err error
@@ -63,7 +64,7 @@ type MultiClient struct {
 func MultiClientCreate(addr string) *MultiClient {
 	s := &MultiClient{}
 	for i := 0; i < zu.CRound; i++ {
-		if s.o[i] = NewTcpClient(addr, s.R); s.o[i] == nil {
+		if s.o[i] = NewTcpClient(addr); s.o[i] == nil {
 			panic("cant connect to server")
 		}
 	}
@@ -79,28 +80,10 @@ func ClientStart(addr string) {
 
 	logrus.Warnf("CLIENT ---msg---> SERVER ---msg---> CLIENT count(msg)")
 	logrus.Warnf("Send 50M msg - %v", msgf2)
-
-	tmp := []byte{}
-	key := tcpClients.Get().SendMessageFakeV3(tcpClients.RI.IncMaxInt(CMaxResultBuffer))
-	tcpClients.Get().GetMessageResponse(key)
-	logrus.Warn("Result ", string(tmp))
-
-	key = tcpClients.Get().SendMessageFakeV3(tcpClients.RI.IncMaxInt(CMaxResultBuffer))
-	tcpClients.Get().GetMessageResponse(key)
-	logrus.Warn("Result ", string(tmp))
-
-	key = tcpClients.Get().SendMessageFakeV3(tcpClients.RI.IncMaxInt(CMaxResultBuffer))
-	tcpClients.Get().GetMessageResponse(key)
-	logrus.Warn("Result ", string(tmp))
-
-	zbench.Run(zu.NRun, zu.NCpu, func(i, thread int) {
-		tcpClients.Get().SendMessageFakeV3(tcpClients.RI.IncMaxInt(CMaxResultBuffer))
+	zbench.Run(zu.NRun, zu.NCpu, func(_, _ int) {
+		tcpClients.Get().SendMessageFakeV3()
 	})
 
 	time.Sleep(5 * time.Second)
-	zbench.Run(zu.NRun, zu.NCpu, func(i, thread int) {
-		tcpClients.Get().GetMessageResponse(i % CMaxResultBuffer)
-	})
-
 	logrus.Warnf("Client receive and count %v msg \n", zu.Commaize(count.Value()))
 }

@@ -1,4 +1,4 @@
-package ztcpclient
+package ztcpclientv2
 
 import (
 	"strconv"
@@ -63,16 +63,14 @@ func (s *TcpClient) SendMessageFakeV2() {
 	s.chans <- bend
 }
 
-func (s *TcpClient) SendMessageFakeV3(key int) int {
-	msg := []byte(strconv.Itoa(int(key)) + "|" + msgf2 + zu.ENDLINE)
+func (s *TcpClient) SendMessageFakeV3() int {
+	key := int(ResultIndex.IncMax(CMaxResultBuffer))
+	msg := []byte(strconv.Itoa(key) + "|" + msgf2 + zu.ENDLINE)
 	s.chans <- msg
 	return key
 }
 
 func (s *TcpClient) GetMessageResponse(key int) []byte {
-	for {
-		if res := s.result[key]; res != nil {
-			return *res
-		}
-	}
+	result := Result[key]
+	return *result
 }

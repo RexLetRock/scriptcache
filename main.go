@@ -1,58 +1,63 @@
 package main
 
 import (
-	"github.com/RexLetRock/scriptcache/zbuffer"
+	"time"
+
+	"github.com/RexLetRock/scriptcache/ztcp"
+	"github.com/RexLetRock/zlib/zgoid"
 )
 
 const Address = "127.0.0.1:9000"
 
-func main() {
-	// go zgnet.MainGnet()
+const CMaxChannSize = 12
 
-	// go zevio.MainEvio(Address)
-	// go ztcpserver.ServerStartViaOptions(Address)
-
-	// time.Sleep(2 * time.Second)
-	// ztcpclient.ClientStart(Address)
-
-	// var count ztcputil.Count32
-	// zbench.Run(50_000_000, NCpu, func(i, thread int) {
-	// 	count.Inc()
-	// })
-
-	// zbench.Run(50_000_000, NCpu, func(i, thread int) {
-	// 	count.Get()
-	// })
-
-	// counter := ztcputil.MakeInt64()
-	// zbench.Run(50_000_000, NCpu, func(i, thread int) {
-	// 	counter.Inc()
-	// })
-
-	// fmt.Println(counter.Read())
-	// fmt.Println(rb.Length())
-	// fmt.Println(rb.Free())
-
-	// go readChann(zbuffer)
-
-	// time.Sleep(5 * time.Second)
-	// logrus.Errorf("TOTAL SLICE %v \n", countTotal.Value())
-
-	zbuffer.Bench()
-	// select {}
+type ChannMulti struct {
+	c [CMaxChannSize]chan []byte
+	z [CMaxChannSize]int
 }
 
-// func readChann(buffer *zbuffer.ZBuffer) {
-// 	for {
-// 		select {
-// 		case data, ok := <-buffer.Chann:
-// 			if ok {
-// 				strdata := string(data)
-// 				a := strings.Split(strdata, "|||")
-// 				countTotal.Add(int64(len(a)))
-// 				// logrus.Warnf("STR %v \n", strdata)
-// 			}
-// 		default: // logrus.Warnf("No value ready, moving on.")
-// 		}
-// 	}
-// }
+func ChannMultiCreate() *ChannMulti {
+	s := &ChannMulti{}
+	for i := 0; i < CMaxChannSize; i++ {
+		s.c[i] = make(chan []byte, 1000)
+		go func(i int) {
+			for v := range s.c[i] {
+				if len(v) > 0 {
+					s.z[i]++
+				}
+			}
+		}(i)
+	}
+	return s
+}
+
+func (s *ChannMulti) Write(data []byte) {
+	index := zgoid.Get()
+	s.c[index%CMaxChannSize] <- data
+}
+
+func (s *ChannMulti) Count() int {
+	total := 0
+	for _, v := range s.z {
+		total += v
+	}
+	return total
+}
+
+func main() {
+	ztcp.Bench()
+	// zbuffer.Bench()
+
+	// channMulti := ChannMultiCreate()
+	// zbench.Run(100_000_000, 12, func(_, j int) {
+	// 	channMulti.Write([]byte("How are you|||"))
+	// })
+	// zbench.Run(100_000_000, 24, func(_, j int) {
+	// 	channMulti.Write([]byte("How are you|||"))
+	// })
+	// zbench.Run(100_000_000, 24, func(_, j int) {
+	// 	channMulti.Write([]byte("How are you|||"))
+	// })
+	time.Sleep(10 * time.Second)
+	// logrus.Warn("Total ", channMulti.Count())
+}

@@ -1,4 +1,4 @@
-package ztcpclient
+package ztcpclientv2
 
 import (
 	"bufio"
@@ -35,11 +35,10 @@ func (s *TcpClient) startTakeloop() {
 
 func (s *TcpClient) handleMsg(msg []byte) {
 	count.Inc()
-	msgData := strings.Split(string(msg), "|")
-	key, err := strconv.Atoi(msgData[0])
+	data := strings.Split(string(msg), "|")
+	index, err := strconv.Atoi(data[0])
 	if err != nil {
 		return
 	}
-
-	s.result[key] = &msg
+	Result[index] = &msg
 }

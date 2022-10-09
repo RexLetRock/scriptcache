@@ -65,9 +65,9 @@ type ConnHandle struct {
 
 func ConnHandleCreate(conn net.Conn) *ConnHandle {
 	s := &ConnHandle{
-		chans:  make(chan []byte, zu.ChansSize),
-		flush:  make(chan []byte, zu.ChansSize),
-		buffer: make([]byte, zu.ChansSize),
+		chans:  make(chan []byte, zu.ChanSize),
+		flush:  make(chan []byte, zu.ChanSize),
+		buffer: make([]byte, zu.ChanSize),
 		conn:   conn,
 	}
 	s.readerReq, s.writerReq = io.Pipe()
