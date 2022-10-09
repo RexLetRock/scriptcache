@@ -36,5 +36,4 @@ func (s *TcpClient) handleMsg(msg []byte) {
 	count.Inc()
 	data := strings.Split(string(msg), "|")
 	Result.Set(data[0], &msg)
-	// Result[index] = &msg
 }
