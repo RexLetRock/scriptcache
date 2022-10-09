@@ -3,11 +3,10 @@ package ztcpclientv2
 import (
 	"io"
 	"net"
-	"time"
+	"strings"
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/RexLetRock/zlib/zbench"
 	"github.com/RexLetRock/zlib/zcount"
 
 	"github.com/RexLetRock/scriptcache/ztcp/ztcputil"
@@ -74,8 +73,8 @@ func (s *MultiClient) Get() *TcpClient {
 	return s.o[s.c.IncMax(zu.CRound)]
 }
 
-func (s *MultiClient) SendMessage() string {
-	return s.Get().SendMessage()
+func (s *MultiClient) SendMessage(msg string) string {
+	return s.Get().SendMessage(msg)
 }
 
 func (s *MultiClient) GetMessage(key string) []byte {
@@ -87,12 +86,23 @@ func ClientStart(addr string) {
 
 	logrus.Warnf("CLIENT ---msg---> SERVER ---msg---> CLIENT count(msg)")
 	logrus.Warnf("Send 50M msg - %v", msgf2)
-	zbench.Run(zu.NRun, zu.NCpu, func(_, _ int) {
-		tcpClients.SendMessage()
-	})
 
-	time.Sleep(5 * time.Second)
-	logrus.Warn(string(tcpClients.GetMessage("8000000")))
-	logrus.Warn(string(tcpClients.GetMessage("8123123")))
+	groupID := "123"
+	// zbench.Run(zu.NRun, zu.NCpu, func(_, _ int) {
+	// 	tcpClients.SendMessage(MessageNew.Toa() + zu.FRAMESPLIT + groupID)
+	// })
+
+	logrus.Warn(GetGroupMessageID(tcpClients.GetMessage(tcpClients.SendMessage(MessageNew.Toa() + zu.FRAMESPLIT + groupID))))
+	logrus.Warn(GetGroupMessageID(tcpClients.GetMessage(tcpClients.SendMessage(MessageNew.Toa() + zu.FRAMESPLIT + groupID))))
+	logrus.Warn(GetGroupMessageID(tcpClients.GetMessage(tcpClients.SendMessage(MessageNew.Toa() + zu.FRAMESPLIT + groupID))))
+
 	logrus.Warnf("Client receive and count %v msg \n", zu.Commaize(count.Value()))
+}
+
+func GetGroupMessageID(msg []byte) string {
+	data := strings.Split(string(msg), zu.FRAMESPLIT)
+	if len(data) >= 2 {
+		return data[1]
+	}
+	return ""
 }

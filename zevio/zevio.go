@@ -3,13 +3,24 @@ package zevio
 import (
 	"bufio"
 	"bytes"
+	"strconv"
+	"strings"
 
+	"github.com/RexLetRock/scriptcache/ztcp/ztcputil"
 	"github.com/tidwall/evio"
 )
 
-const ACK_SEP = "|"
+const FRAMESPLIT = "|"
 const ENDLINE = "#\t#"
 const ENDLINE_LENGTH = len(ENDLINE)
+
+var ENDBYTE = []byte(ENDLINE)
+
+var DataGroup ztcputil.ConcurrentMap // [CMaxResultBuffer]*[]byte
+
+func init() {
+	DataGroup = ztcputil.CMapCreate()
+}
 
 func MainEvio(address string) {
 	var events evio.Events
@@ -34,7 +45,7 @@ func MainEvio(address string) {
 			return
 		}
 
-		msgs := bytes.Split(data, []byte(ENDLINE))
+		msgs := bytes.Split(data, ENDBYTE)
 		if len(msgs) < 1 {
 			return
 		}
@@ -45,9 +56,24 @@ func MainEvio(address string) {
 		// Range data
 		resdata := []byte{}
 		for _, v := range msgsA {
-			vf := bytes.Split(v, []byte(ACK_SEP))
-			vfull := append(v, []byte(string(vf[0])+ENDLINE)...)
-			resdata = append(resdata, vfull...)
+			vdata := strings.Split(string(v), FRAMESPLIT)
+			vresp := vdata[0]
+			if len(vdata) >= 3 {
+				switch vdata[1] {
+				case MessageNew.Toa():
+					groupMessID, _ := DataGroup.Get(vdata[2])
+					if groupMessID == nil {
+						groupMessID = 0
+					}
+					groupMessIDInt, _ := groupMessID.(int)
+					groupMessIDInt++
+					DataGroup.Set(vdata[2], groupMessIDInt)
+					vresp += FRAMESPLIT + strconv.Itoa(groupMessIDInt)
+				}
+			}
+
+			resmsg := append([]byte(vresp), ENDBYTE...)
+			resdata = append(resdata, resmsg...)
 		}
 
 		// Leftover

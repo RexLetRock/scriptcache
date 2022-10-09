@@ -54,9 +54,9 @@ func (s *TcpClient) SendMessageEncode(m interface{}) uint64 {
 	return 0
 }
 
-func (s *TcpClient) SendMessage() string {
+func (s *TcpClient) SendMessage(msgstr string) string {
 	key := strconv.Itoa(int(ResultIndex.Inc()))
-	msg := []byte(key + zu.FRAMESPLIT + msgf2 + zu.ENDLINE)
+	msg := []byte(key + zu.FRAMESPLIT + msgstr + zu.ENDLINE)
 	s.chans <- msg
 	return key
 }

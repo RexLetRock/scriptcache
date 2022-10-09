@@ -35,5 +35,6 @@ func (s *TcpClient) startTakeloop() {
 func (s *TcpClient) handleMsg(msg []byte) {
 	count.Inc()
 	data := strings.Split(string(msg), "|")
+	msg = msg[:len(msg)-3]
 	Result.Set(data[0], &msg)
 }
