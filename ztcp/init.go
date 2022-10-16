@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/RexLetRock/scriptcache/zevio"
-	"github.com/RexLetRock/scriptcache/ztcp/ztcpclientv2"
+	"github.com/RexLetRock/scriptcache/ztcp/ztcpclient"
 	"github.com/sirupsen/logrus"
 )
 
@@ -14,5 +14,5 @@ func Bench() {
 	logrus.Warnf("\n\n==== ZTCP ===\n")
 	go zevio.MainEvio(Address)
 	time.Sleep(2 * time.Second)
-	ztcpclientv2.ClientStart(Address)
+	ztcpclient.ClientStart(Address)
 }

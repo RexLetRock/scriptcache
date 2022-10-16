@@ -1,4 +1,4 @@
-package ztcpclientv2
+package ztcpclient
 
 import (
 	"strconv"
