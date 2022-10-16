@@ -4,9 +4,11 @@ import (
 	"io"
 	"net"
 	"strings"
+	"time"
 
 	"github.com/sirupsen/logrus"
 
+	"github.com/RexLetRock/zlib/zbench"
 	"github.com/RexLetRock/zlib/zcount"
 
 	"github.com/RexLetRock/scriptcache/ztcp/ztcputil"
@@ -88,11 +90,20 @@ func ClientStart(addr string) {
 	logrus.Warnf("Send 50M msg - %v", msgf2)
 
 	groupID := "123"
-	// zbench.Run(zu.NRun, zu.NCpu, func(_, _ int) {
-	// 	tcpClients.SendMessage(MessageNew.Toa() + zu.FRAMESPLIT + groupID)
-	// })
+	zbench.Run(zu.NRun/2, zu.NCpu, func(_, _ int) {
+		tcpClients.SendMessage(MessageNew.Toa() + zu.FRAMESPLIT + groupID)
+	})
+
+	time.Sleep(5 * time.Second)
 
 	// Ticket system
+	logrus.Warn(GetGroupMessageID(tcpClients.GetMessage(tcpClients.SendMessage(MessageNew.Toa() + zu.FRAMESPLIT + groupID))))
+	logrus.Warn(GetGroupMessageID(tcpClients.GetMessage(tcpClients.SendMessage(MessageNew.Toa() + zu.FRAMESPLIT + groupID))))
+	logrus.Warn(GetGroupMessageID(tcpClients.GetMessage(tcpClients.SendMessage(MessageNew.Toa() + zu.FRAMESPLIT + groupID))))
+	logrus.Warn(GetGroupMessageID(tcpClients.GetMessage(tcpClients.SendMessage(MessageNew.Toa() + zu.FRAMESPLIT + groupID))))
+	logrus.Warn(GetGroupMessageID(tcpClients.GetMessage(tcpClients.SendMessage(MessageNew.Toa() + zu.FRAMESPLIT + groupID))))
+	logrus.Warn(GetGroupMessageID(tcpClients.GetMessage(tcpClients.SendMessage(MessageNew.Toa() + zu.FRAMESPLIT + groupID))))
+	logrus.Warn(GetGroupMessageID(tcpClients.GetMessage(tcpClients.SendMessage(MessageNew.Toa() + zu.FRAMESPLIT + groupID))))
 	logrus.Warn(GetGroupMessageID(tcpClients.GetMessage(tcpClients.SendMessage(MessageNew.Toa() + zu.FRAMESPLIT + groupID))))
 	logrus.Warn(GetGroupMessageID(tcpClients.GetMessage(tcpClients.SendMessage(MessageNew.Toa() + zu.FRAMESPLIT + groupID))))
 	logrus.Warn(GetGroupMessageID(tcpClients.GetMessage(tcpClients.SendMessage(MessageNew.Toa() + zu.FRAMESPLIT + groupID))))

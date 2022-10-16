@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/RexLetRock/scriptcache/ztcp/ztcputil"
 	"github.com/sirupsen/logrus"
@@ -31,12 +30,6 @@ func MainEvio(address string) {
 	events.Opened = func(c evio.Conn) (out []byte, opts evio.Options, action evio.Action) {
 		c.SetContext(&evio.InputStream{})
 		logrus.Warnf("New context %+v \n", c.RemoteAddr())
-
-		go func() {
-			time.Sleep(time.Second)
-			// c.Wake()
-		}()
-
 		return
 	}
 
@@ -45,9 +38,7 @@ func MainEvio(address string) {
 	}
 
 	events.Data = func(c evio.Conn, in []byte) (out []byte, action evio.Action) {
-		// When wake
 		if in == nil {
-			logrus.Warn("WAKE UP")
 			return
 		}
 
@@ -91,7 +82,6 @@ func MainEvio(address string) {
 
 		// Leftover
 		is.End(msgsB)
-
 		out = resdata
 		return
 	}
