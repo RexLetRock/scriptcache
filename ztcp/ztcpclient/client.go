@@ -42,7 +42,7 @@ func NewTcpClient(addr string) *TcpClient {
 	s := &TcpClient{
 		chans:  make(chan []byte, zu.ChanSize),
 		flush:  make(chan []byte, 1),
-		buffer: make([]byte, zu.ChanSize),
+		buffer: make([]byte, zu.BuffSize),
 	}
 
 	var err error
@@ -72,11 +72,19 @@ func MultiClientCreate(addr string) *MultiClient {
 }
 
 func (s *MultiClient) Get() *TcpClient {
-	return s.o[s.c.IncMax(zu.CRound)]
+	return s.o[s.c.Inc()%zu.CRound]
+}
+
+func (s *MultiClient) GetViaCpu(cpu int) *TcpClient {
+	return s.o[cpu%zu.CRound]
 }
 
 func (s *MultiClient) SendMessage(msg string) string {
 	return s.Get().SendMessage(msg)
+}
+
+func (s *MultiClient) SendMessageViaCpu(msg string, cpu int) string {
+	return s.GetViaCpu(cpu).SendMessage(msg)
 }
 
 func (s *MultiClient) GetMessage(key string) []byte {
@@ -85,32 +93,26 @@ func (s *MultiClient) GetMessage(key string) []byte {
 
 func ClientStart(addr string) {
 	var tcpClients = MultiClientCreate(addr)
+	time.Sleep(time.Second)
 
 	logrus.Warnf("CLIENT ---msg---> SERVER ---msg---> CLIENT count(msg)")
 	logrus.Warnf("Send 50M msg - %v", msgf2)
 
 	groupID := "123"
-	zbench.Run(zu.NRun/2, zu.NCpu, func(_, _ int) {
+	zbench.Run(zu.NRun/10, zu.NCpu, func(_, j int) {
 		tcpClients.SendMessage(MessageNew.Toa() + zu.FRAMESPLIT + groupID)
+		// tcpClients.SendMessageViaCpu(MessageNew.Toa()+zu.FRAMESPLIT+groupID, j)
 	})
 
-	time.Sleep(5 * time.Second)
-
 	// Ticket system
-	logrus.Warn(GetGroupMessageID(tcpClients.GetMessage(tcpClients.SendMessage(MessageNew.Toa() + zu.FRAMESPLIT + groupID))))
-	logrus.Warn(GetGroupMessageID(tcpClients.GetMessage(tcpClients.SendMessage(MessageNew.Toa() + zu.FRAMESPLIT + groupID))))
-	logrus.Warn(GetGroupMessageID(tcpClients.GetMessage(tcpClients.SendMessage(MessageNew.Toa() + zu.FRAMESPLIT + groupID))))
-	logrus.Warn(GetGroupMessageID(tcpClients.GetMessage(tcpClients.SendMessage(MessageNew.Toa() + zu.FRAMESPLIT + groupID))))
-	logrus.Warn(GetGroupMessageID(tcpClients.GetMessage(tcpClients.SendMessage(MessageNew.Toa() + zu.FRAMESPLIT + groupID))))
-	logrus.Warn(GetGroupMessageID(tcpClients.GetMessage(tcpClients.SendMessage(MessageNew.Toa() + zu.FRAMESPLIT + groupID))))
-	logrus.Warn(GetGroupMessageID(tcpClients.GetMessage(tcpClients.SendMessage(MessageNew.Toa() + zu.FRAMESPLIT + groupID))))
-	logrus.Warn(GetGroupMessageID(tcpClients.GetMessage(tcpClients.SendMessage(MessageNew.Toa() + zu.FRAMESPLIT + groupID))))
-	logrus.Warn(GetGroupMessageID(tcpClients.GetMessage(tcpClients.SendMessage(MessageNew.Toa() + zu.FRAMESPLIT + groupID))))
-	logrus.Warn(GetGroupMessageID(tcpClients.GetMessage(tcpClients.SendMessage(MessageNew.Toa() + zu.FRAMESPLIT + groupID))))
+	// logrus.Warn(GetGroupMessageID(tcpClients.GetMessage(tcpClients.SendMessage(MessageNew.Toa() + zu.FRAMESPLIT + groupID))))
 
 	// Broadcast system
-	tcpClients.SendMessage(MessageNew.Toa() + zu.FRAMESPLIT + groupID)
+	zbench.Run(10, zu.NCpu, func(_, j int) {
+		tcpClients.SendMessage(MessageBroadcast.Toa() + zu.FRAMESPLIT + groupID)
+	})
 
+	time.Sleep(10 * time.Second)
 	logrus.Warnf("Client receive and count %v msg \n", zu.Commaize(count.Value()))
 }
 

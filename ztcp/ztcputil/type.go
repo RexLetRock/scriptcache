@@ -8,9 +8,10 @@ const FRAMESPLIT = "|"
 const ENDLINE = "#\t#" //
 const ENDLINE_LENGTH = len(ENDLINE)
 
-const SendSize = 1000
-const ChanSize = 1000 * 100
-const CRound = 100
+const SendSize = 999
+const ChanSize = 1000
+const BuffSize = 1000
+const CRound = 10
 const TimeToFlush = time.Millisecond
 
 var ENDBYTE = []byte(ENDLINE)

@@ -29,13 +29,13 @@ func (s *TcpClient) startSendloopViaChannel() {
 			cSend += 1
 			tmpSlice = append(tmpSlice, msg...)
 			if cSend >= zu.SendSize {
-				s.conn.Write(tmpSlice)
+				go s.conn.Write(tmpSlice)
 				tmpSlice = []byte{}
 				cSend = 0
 			}
 		case <-s.flush:
 			if len(tmpSlice) > 0 {
-				s.conn.Write(tmpSlice)
+				go s.conn.Write(tmpSlice)
 				tmpSlice = []byte{}
 				cSend = 0
 			}
