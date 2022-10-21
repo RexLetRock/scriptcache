@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"strconv"
 	"strings"
-	"sync"
 
 	"github.com/RexLetRock/scriptcache/ztcp/ztcputil"
 	"github.com/sirupsen/logrus"
@@ -26,20 +25,17 @@ var ChanBroadcast chan []byte
 type EvioStruct struct {
 	is        *evio.InputStream
 	ch        []byte
-	mu        sync.Mutex
 	testValue int
 }
 
 func init() {
-	ChanBroadcast = make(chan []byte, 1000)
-	go Broadcast()
-
 	DataGroup = ztcputil.CMapCreate()
 	DataIP = ztcputil.CMapCreate()
 }
 
 func MainEvio(address string) {
 	var events evio.Events
+	events.NumLoops = ztcputil.NCpu
 	events.Opened = func(c evio.Conn) (out []byte, opts evio.Options, action evio.Action) {
 		evioStruct := &EvioStruct{
 			is: &evio.InputStream{},
@@ -55,15 +51,6 @@ func MainEvio(address string) {
 
 	events.Data = func(c evio.Conn, in []byte) (out []byte, action evio.Action) {
 		if in == nil {
-			ctx := c.Context().(*EvioStruct)
-			ctx.mu.Lock()
-			if len(ctx.ch) > 0 {
-				out = ctx.ch
-				count := len(strings.Split(string(ctx.ch), ENDLINE))
-				logrus.Warn("NILL ", string(out), count)
-				ctx.ch = []byte{}
-			}
-			ctx.mu.Unlock()
 			return
 		}
 
@@ -92,13 +79,12 @@ func MainEvio(address string) {
 				case MessageNew.Toa():
 					groupMessID, _ := DataGroup.Get(vdata[2])
 					if groupMessID == nil {
-						groupMessID = 0
+						groupMessID = ztcputil.Count32Create()
 					}
-					groupMessIDInt, _ := groupMessID.(int)
-					groupMessIDInt++
+					groupMessIDInt, _ := groupMessID.(*ztcputil.Count32)
+					groupMessIDInt.Inc()
 					DataGroup.Set(vdata[2], groupMessIDInt)
-					vresp += FRAMESPLIT + strconv.Itoa(groupMessIDInt)
-					ctx.testValue += 1
+					vresp += FRAMESPLIT + strconv.Itoa(int(groupMessIDInt.Get()))
 				case MessageBroadcast.Toa():
 					ChanBroadcast <- []byte{}
 				}
@@ -110,11 +96,6 @@ func MainEvio(address string) {
 
 		// Leftover
 		ctx.is.End(msgsB)
-		ctx.mu.Lock()
-		if len(ctx.ch) > 0 {
-			logrus.Warn("DATA ", string(ctx.ch))
-		}
-		ctx.mu.Unlock()
 		out = resdata
 		return
 	}
@@ -128,12 +109,8 @@ func Broadcast() {
 	for range ChanBroadcast {
 		ipdata := DataIP.Items()
 		for _, v := range ipdata {
-			con := v.(evio.Conn)
-			ctx := con.Context().(*EvioStruct)
-			ctx.mu.Lock()
-			ctx.ch = append(ctx.ch, append([]byte("Hello"), ENDBYTE...)...)
-			ctx.mu.Unlock()
-			// con.Wake()
+			_ = v.(evio.Conn)
+			// ctx := con.Context().(*EvioStruct)
 		}
 	}
 }

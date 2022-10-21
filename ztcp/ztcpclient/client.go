@@ -99,20 +99,21 @@ func ClientStart(addr string) {
 	logrus.Warnf("Send 50M msg - %v", msgf2)
 
 	groupID := "123"
-	zbench.Run(zu.NRun/10, zu.NCpu, func(_, j int) {
-		tcpClients.SendMessage(MessageNew.Toa() + zu.FRAMESPLIT + groupID)
-		// tcpClients.SendMessageViaCpu(MessageNew.Toa()+zu.FRAMESPLIT+groupID, j)
+	zbench.Run(zu.NRun, zu.NCpu, func(_, j int) {
+		// tcpClients.SendMessage(MessageNew.Toa() + zu.FRAMESPLIT + groupID)
+		tcpClients.SendMessageViaCpu(MessageNew.Toa()+zu.FRAMESPLIT+groupID, j)
 	})
 
+	time.Sleep(10 * time.Second)
+
 	// Ticket system
-	// logrus.Warn(GetGroupMessageID(tcpClients.GetMessage(tcpClients.SendMessage(MessageNew.Toa() + zu.FRAMESPLIT + groupID))))
+	logrus.Warn(GetGroupMessageID(tcpClients.GetMessage(tcpClients.SendMessage(MessageNew.Toa() + zu.FRAMESPLIT + groupID))))
 
 	// Broadcast system
 	zbench.Run(10, zu.NCpu, func(_, j int) {
 		tcpClients.SendMessage(MessageBroadcast.Toa() + zu.FRAMESPLIT + groupID)
 	})
 
-	time.Sleep(10 * time.Second)
 	logrus.Warnf("Client receive and count %v msg \n", zu.Commaize(count.Value()))
 }
 

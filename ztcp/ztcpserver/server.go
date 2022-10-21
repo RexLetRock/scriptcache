@@ -12,10 +12,9 @@ import (
 )
 
 const ThreadPerConn = 5
-const countSize = 100_000
 const connHost = "0.0.0.0:9000"
 
-var pCounter = zu.PerformanceCounterCreate(countSize, 0, "SERVER RUN")
+// var pCounter = zu.PerformanceCounterCreate(countSize, 0, "SERVER RUN")
 var counter zcount.Counter
 
 func ServerStart() {
@@ -104,7 +103,6 @@ func ConnHandleCreate(conn net.Conn) *ConnHandle {
 					cSend = 0
 				}
 			case <-s.flush:
-				// logrus.Warnf("COUNTER %v \n", counter.Value())
 				if len(s.slice) > 0 {
 					go s.conn.Write(s.slice)
 					s.slice = []byte{}

@@ -10,6 +10,10 @@ import (
 // fast count - fast get
 type Count32 int32
 
+func Count32Create() *Count32 {
+	return new(Count32)
+}
+
 func (c *Count32) IncMaxInt(i int32) int {
 	return int(c.IncMax(i))
 }
