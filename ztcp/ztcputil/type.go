@@ -11,7 +11,7 @@ const ENDLINE_LENGTH = len(ENDLINE)
 const SendSize = 999
 const ChanSize = 1000
 const BuffSize = 1000
-const CRound = 12
+const CRound = 60
 const TimeToFlush = time.Millisecond
 
 var ENDBYTE = []byte(ENDLINE)
