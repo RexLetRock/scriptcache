@@ -5,7 +5,6 @@ go 1.18
 require (
 	github.com/RexLetRock/zlib v0.0.0-20220824093749-9d1b792eb9ea
 	github.com/gobwas/ws v1.1.0
-	github.com/panjf2000/ants/v2 v2.5.0
 	github.com/panjf2000/gnet v1.6.6
 	github.com/sirupsen/logrus v1.9.0
 	github.com/smallnest/epoller v0.0.0-20220519132708-4cf8edae2daf
@@ -19,8 +18,6 @@ require (
 	github.com/armon/go-metrics v0.0.0-20190430140413-ec5e00d3c878 // indirect
 	github.com/boltdb/bolt v1.3.1 // indirect
 	github.com/fatih/color v1.7.0 // indirect
-	github.com/gammazero/deque v0.2.0 // indirect
-	github.com/gammazero/workerpool v1.1.3 // indirect
 	github.com/gobwas/httphead v0.1.0 // indirect
 	github.com/gobwas/pool v0.2.1 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
@@ -34,6 +31,9 @@ require (
 	github.com/kavu/go_reuseport v1.5.0 // indirect
 	github.com/mattn/go-colorable v0.1.4 // indirect
 	github.com/mattn/go-isatty v0.0.10 // indirect
+	github.com/songgao/colorgo v0.0.0-20161028043718-1e1a5b5cef5c // indirect
+	github.com/songgao/go.pipeline v0.0.0-20220429045509-ad6449c973e2 // indirect
+	github.com/stretchr/testify v1.7.1 // indirect
 	github.com/syndtr/goleveldb v1.0.0 // indirect
 	github.com/tidwall/btree v1.3.1 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
@@ -45,6 +45,7 @@ require (
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	go.etcd.io/bbolt v1.3.5 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
+	go.uber.org/goleak v1.1.12 // indirect
 	go.uber.org/multierr v1.7.0 // indirect
 	go.uber.org/zap v1.21.0 // indirect
 	golang.org/x/crypto v0.0.0-20201116153603-4be66e5b6582 // indirect
@@ -53,3 +54,5 @@ require (
 )
 
 replace github.com/LENSHOOD/go-lock-free-ring-buffer => ./lfring
+
+replace github.com/tidwall/evio => ../evio

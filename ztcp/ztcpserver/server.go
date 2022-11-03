@@ -7,30 +7,16 @@ import (
 	"net"
 	"time"
 
-	"github.com/RexLetRock/scriptcache/libs/zcount"
 	zu "github.com/RexLetRock/scriptcache/ztcp/ztcputil"
 )
 
 const ThreadPerConn = 5
-const connHost = "0.0.0.0:9000"
 
-// var pCounter = zu.PerformanceCounterCreate(countSize, 0, "SERVER RUN")
-var counter zcount.Counter
+const cSendSize = 999
+const cChanSize = 10000
+const cTimeToFlush = time.Millisecond
 
-func ServerStart() {
-	listener, err := net.Listen("tcp", connHost)
-	if err != nil {
-		log.Fatalf("Start server %v \n", err)
-	}
-	defer listener.Close()
-	for {
-		if conn, err := listener.Accept(); err == nil {
-			go handleConn(conn)
-		}
-	}
-}
-
-func ServerStartViaOptions(host string) {
+func ServerStart(host string) {
 	log.Printf("Start server at %v\n", host)
 	listener, err := net.Listen("tcp", host)
 	if err != nil {
@@ -39,7 +25,9 @@ func ServerStartViaOptions(host string) {
 
 	defer listener.Close()
 	for {
-		if conn, err := listener.Accept(); err == nil {
+		if conn, err := listener.Accept(); err != nil {
+			log.Printf("Conn accept failed %v \n", err)
+		} else {
 			go handleConn(conn)
 		}
 	}
@@ -60,59 +48,68 @@ type ConnHandle struct {
 	buffer []byte
 	slice  []byte
 	conn   net.Conn
+
+	cntSent int
 }
 
 func ConnHandleCreate(conn net.Conn) *ConnHandle {
 	s := &ConnHandle{
-		chans:  make(chan []byte, zu.ChanSize),
-		flush:  make(chan []byte, zu.ChanSize),
-		buffer: make([]byte, zu.ChanSize),
-		conn:   conn,
+		chans:   make(chan []byte, cChanSize),
+		flush:   make(chan []byte),
+		buffer:  make([]byte, cChanSize),
+		conn:    conn,
+		cntSent: 0,
 	}
 	s.readerReq, s.writerReq = io.Pipe()
 
-	// Timetoflush
-	go func() {
-		for {
-			time.Sleep(zu.TimeToFlush)
-			s.flush <- []byte{}
-		}
-	}()
+	// Force Write
+	go s.LoopToFlush()
 
-	// Receive request msg flow
-	go func() {
-		reader := bufio.NewReader(s.readerReq)
-		for {
-			msg, _ := zu.ReadWithEnd(reader)
-			s.chans <- msg
-		}
-	}()
+	// Write msg
+	go s.LoopToWrite()
 
-	// Handle package flow - write flow
-	go func() {
-		cSend := 0
-		for {
-			select {
-			case msg := <-s.chans:
-				counter.Inc()
-				s.slice = append(s.slice, msg...)
-				cSend += 1
-				if cSend >= zu.SendSize {
-					go s.conn.Write(s.slice)
-					s.slice = []byte{}
-					cSend = 0
-				}
-			case <-s.flush:
+	// Receive msg
+	go s.LoopToRead()
+
+	return s
+}
+
+func (s *ConnHandle) LoopToFlush() {
+	for {
+		time.Sleep(cTimeToFlush)
+		s.flush <- []byte{}
+	}
+}
+
+func (s *ConnHandle) LoopToWrite() {
+	for {
+		select {
+		case msg := <-s.chans:
+			s.slice = append(s.slice, msg...)
+			s.cntSent++
+			if s.cntSent >= cSendSize {
 				if len(s.slice) > 0 {
 					go s.conn.Write(s.slice)
 					s.slice = []byte{}
+					s.cntSent = 0
 				}
 			}
+		case <-s.flush:
+			if len(s.slice) > 0 {
+				go s.conn.Write(s.slice)
+				s.slice = []byte{}
+				s.cntSent = 0
+			}
 		}
-	}()
+	}
+}
 
-	// Response flow
-	return s
+func (s *ConnHandle) LoopToRead() {
+	reader := bufio.NewReader(s.readerReq)
+	for {
+		msg, _ := zu.ReadWithEnd(reader)
+		s.chans <- msg
+	}
 }
 
 func (s *ConnHandle) Handle() error {

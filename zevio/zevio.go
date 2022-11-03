@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/RexLetRock/scriptcache/ztcp/ztcputil"
-	"github.com/sirupsen/logrus"
 	"github.com/tidwall/evio"
 )
 
@@ -21,27 +20,25 @@ var ENDBYTE = []byte(ENDLINE)
 var DataGroup ztcputil.ConcurrentMap // [CMaxResultBuffer]*[]byte
 var DataIP ztcputil.ConcurrentMap
 var ChanBroadcast chan []byte
+var BroadcastCount ztcputil.Count32
 
-type EvioStruct struct {
-	is        *evio.InputStream
-	ch        []byte
-	testValue int
+type EvioContext struct {
+	// is *evio.InputStream
 }
 
 func init() {
 	DataGroup = ztcputil.CMapCreate()
 	DataIP = ztcputil.CMapCreate()
+	ChanBroadcast = make(chan []byte, 1000)
+	go Broadcast()
 }
 
 func MainEvio(address string) {
 	var events evio.Events
 	events.NumLoops = ztcputil.NCpu
 	events.Opened = func(c evio.Conn) (out []byte, opts evio.Options, action evio.Action) {
-		evioStruct := &EvioStruct{
-			is: &evio.InputStream{},
-		}
-		c.SetContext(evioStruct)
-		DataIP.Set(c.RemoteAddr().String(), c)
+		c.SetContext(&evio.InputStream{})
+		DataIP.Set(c.RemoteAddr().String(), &c)
 		return
 	}
 
@@ -49,14 +46,19 @@ func MainEvio(address string) {
 		return
 	}
 
+	events.Cast = func(c evio.Conn) (out []byte) {
+		out = []byte("hello" + ENDLINE)
+		return
+	}
+
 	events.Data = func(c evio.Conn, in []byte) (out []byte, action evio.Action) {
+		ctx := c.Context().(*evio.InputStream)
 		if in == nil {
-			return
+			// return
+			in = []byte{}
 		}
 
-		ctx := c.Context().(*EvioStruct)
-		data := ctx.is.Begin(in)
-
+		data := ctx.Begin(in)
 		if len(data) < ENDLINE_LENGTH {
 			return
 		}
@@ -95,7 +97,7 @@ func MainEvio(address string) {
 		}
 
 		// Leftover
-		ctx.is.End(msgsB)
+		ctx.End(msgsB)
 		out = resdata
 		return
 	}
@@ -109,19 +111,12 @@ func Broadcast() {
 	for range ChanBroadcast {
 		ipdata := DataIP.Items()
 		for _, v := range ipdata {
-			_ = v.(evio.Conn)
-			// ctx := con.Context().(*EvioStruct)
+			con := v.(*evio.Conn)
+			if con != nil {
+
+			}
 		}
 	}
-}
-
-func CountTest() {
-	ipdata := DataIP.Items()
-	total := 0
-	for _, v := range ipdata {
-		total += v.(evio.Conn).Context().(*EvioStruct).testValue
-	}
-	logrus.Warn("TOTAL ", total)
 }
 
 func ReadWithEnd(reader *bufio.Reader) ([]byte, error) {
