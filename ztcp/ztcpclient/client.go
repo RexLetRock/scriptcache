@@ -98,27 +98,31 @@ func ClientStart(addr string) {
 	logrus.Warnf("CLIENT ---msg---> SERVER ---msg---> CLIENT count(msg)")
 	logrus.Warnf("Send 50M msg - %v", msgf2)
 
-	groupID := "1"
-	// zbench.Run(zu.NRun, zu.NCpu, func(_, j int) {
-	// 	tcpClients.SendMessage(MessageNew.Toa() + zu.FRAMESPLIT + groupID)
-	// 	// tcpClients.SendMessageViaCpu(MessageNew.Toa()+zu.FRAMESPLIT+groupID, j)
-	// })
-
-	// Ticket system
-	// logrus.Warn(GetGroupMessageID(tcpClients.GetMessage(tcpClients.SendMessage(MessageNew.Toa() + zu.FRAMESPLIT + groupID))))
-	// time.Sleep(15 * time.Second)
-
-	// Broadcast system
-	nBroadcast := 1000
+	groupID := "Hello how are you !!!"
+	nBroadcast := 2_000_000
 	zbench.Run(nBroadcast, 12, func(i, thread int) {
 		tcpClients.SendMessage(MessageBroadcast.Toa() + zu.FRAMESPLIT + groupID)
 	})
 
-	time.Sleep(2 * time.Second)
+	time.Sleep(15 * time.Second)
 	logrus.Warnf("Client broadcast precals %v msg \n", zu.Commaize(int64(nBroadcast)*(ztcputil.CRound+1)))
 	logrus.Warnf("Client receive and count %v msg \n", zu.Commaize(count.Value()))
 
 	time.Sleep(20 * time.Second)
+}
+
+func BenchTicket(tcpClients *MultiClient) {
+	groupID := "1"
+	zbench.Run(zu.NRun, zu.NCpu, func(_, j int) {
+		tcpClients.SendMessage(MessageNew.Toa() + zu.FRAMESPLIT + groupID)
+	})
+
+	zbench.Run(zu.NRun, zu.NCpu, func(_, j int) {
+		tcpClients.SendMessageViaCpu(MessageNew.Toa()+zu.FRAMESPLIT+groupID, j)
+	})
+
+	logrus.Warn(GetGroupMessageID(tcpClients.GetMessage(tcpClients.SendMessage(MessageNew.Toa() + zu.FRAMESPLIT + groupID))))
+	time.Sleep(15 * time.Second)
 }
 
 func GetGroupMessageID(msg []byte) string {

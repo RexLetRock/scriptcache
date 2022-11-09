@@ -1,85 +1,84 @@
 package zbuffer
 
 import (
-	"strings"
 	"sync/atomic"
 	"time"
 
-	"github.com/RexLetRock/scriptcache/ztcp/ztcputil"
 	"github.com/RexLetRock/zlib/ztime"
 	"github.com/sirupsen/logrus"
 )
 
-const CMaxCellPremake = 1
-const CMaxCellCircle = 20 // Number of cell
-const CMaxCellDelta = 19  // This is gap guard , processing and reusing data -> Delta = Circle - Premake
-const CMaxBuffSize = 20 * 1024
-const CMaxCpu = 1000
+const CMaxCellPremake = 1       // Cell to premake for writing
+const CMaxCellCircle = 20       // Number of cell in circle
+const CMaxCellDelta = 19        // This is gap guard , processing and reusing data -> Delta = Circle - Premake
+const CMaxBuffSize = 1024 * 100 // Buffer size in cell
+const CMaxCpu = 1000            // For hashing cell
 
-const CTimeDiff = 200 * 1000_000     // 10 Millisecond
-const CTimeFlushTick = 50 * 1000_000 // 10 Millisecond flush
+const CTimeDiff = 100 * time.Millisecond      // Time to flush old cell
+const CTimeFlushSleep = 10 * time.Millisecond // Time to check need to flush old cell
 
 type Cell struct {
-	data      []byte
-	dataCount int
-	pnum      int32
+	data      []byte // Buffer data
+	dataCount int    // Data count
 }
 
 type Factory struct {
-	Cells         [CMaxCellCircle]*Cell
-	Cell          *Cell
-	Start         bool
-	Index         int32
+	Cells         [CMaxCellCircle]*Cell // Cells bank
+	Cell          *Cell                 // Current cell pointer
+	Index         int32                 // Current cell index
 	Time          int64
 	TimeInProcess int64
+	Handle        func(data []byte) // Handle data function
 
 	name uint16
 	hash uint16
 
 	// Oldcell handle channel
-	ChannsDelta ztcputil.Count32
+	ChannsDelta Count32
 	Channs      chan *Cell
+
+	start bool // Start backgroud service for first time get Cell
 }
 
-func FactoryCreate(index uint16) *Factory {
+func FactoryCreate(index uint16, handle func(data []byte)) *Factory {
 	s := &Factory{
-		name:   index,
+		name:   0xFF,
 		hash:   index % CMaxCpu,
 		Channs: make(chan *Cell, CMaxCellDelta),
+		Handle: handle,
 	}
 	go s.handleOldCellLoop()
 	return s
 }
 
-func (s *Factory) WriteTime() {
-	time := ztime.UnixNanoNow()
-	if time != s.TimeInProcess {
-		atomic.SwapInt64(&s.Time, time)
-	}
-	s.TimeInProcess = time
+func (s *Factory) SetName(name uint16) {
+	s.name = name
 }
 
 func (s *Factory) Write(data []byte) {
+	// Get new cell when empty cell
 	dataLen := len(data)
 	if s.Cell == nil {
 		s.CellGet()
 	}
 
+	// Get new cell when overflow
 	newDataCount := s.Cell.dataCount + dataLen
 	if newDataCount >= CMaxBuffSize {
 		s.CellGet()
 		newDataCount = dataLen
 	}
 
+	// Copy data - this is fastest way to write data
 	copy(s.Cell.data[s.Cell.dataCount:newDataCount], data)
 	s.Cell.dataCount = newDataCount
-	s.WriteTime()
+	s.updateWriteTime()
 }
 
 func (s *Factory) CellGet() *Cell {
 	// Cell loop when firstime use this cell
-	if !s.Start {
-		s.Start = true
+	if !s.start {
+		s.start = true
 		go s.handleFlushCellLoop()
 	}
 
@@ -108,9 +107,10 @@ func (s *Factory) CellGet() *Cell {
 			data: make([]byte, CMaxBuffSize),
 		}
 	}
+
+	// Reset cell for new use
 	pCell := s.Cells[hash]
 	pCell.dataCount = 0
-	pCell.pnum = s.Index
 	s.Cell = pCell
 	return pCell
 }
@@ -118,23 +118,31 @@ func (s *Factory) CellGet() *Cell {
 func (s *Factory) handleOldCellLoop() {
 	for pCell := range s.Channs {
 		if pCell != nil {
-			dataStr := string(pCell.data[:pCell.dataCount])
-			a := strings.Split(dataStr, "|||")
-			countAll.Add(int64(len(a) - 1))
+			if s.Handle != nil {
+				s.Handle(pCell.data[:pCell.dataCount])
+			}
 			s.ChannsDelta.Inc()
 		}
 	}
 }
 
+// Flush cell after time, for cell that not full yet
 func (s *Factory) handleFlushCellLoop() {
+	time.Sleep(time.Second)
 	for {
-		time.Sleep(CTimeFlushTick)
-		curTime := ztime.UnixNanoNow()
+		time.Sleep(CTimeFlushSleep)
 		lastTime := atomic.LoadInt64(&s.Time)
-		if lastTime != 0 && curTime-lastTime > CTimeDiff {
-			logf()
+		if lastTime != 0 && ztime.UnixNanoNow()-lastTime > int64(CTimeDiff) {
 			s.CellGet()
 			s.Time = 0
 		}
 	}
+}
+
+func (s *Factory) updateWriteTime() {
+	time := ztime.UnixNanoNow()
+	if time != s.TimeInProcess {
+		atomic.SwapInt64(&s.Time, time)
+	}
+	s.TimeInProcess = time
 }

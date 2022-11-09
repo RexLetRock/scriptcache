@@ -2,7 +2,6 @@ package ztcpclient
 
 import (
 	"bufio"
-	"strings"
 
 	zu "github.com/RexLetRock/scriptcache/ztcp/ztcputil"
 )
@@ -34,7 +33,7 @@ func (s *TcpClient) startTakeloop() {
 
 func (s *TcpClient) handleMsg(msg []byte) {
 	count.Inc()
-	data := strings.Split(string(msg), "|")
-	msg = msg[:len(msg)-3]
-	Result.Set(data[0], &msg)
+	// data := strings.Split(string(msg), "|")
+	// msg = msg[:len(msg)-3]
+	// Result.Set(data[0], &msg)
 }

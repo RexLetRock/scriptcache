@@ -1,7 +1,6 @@
 package ztcpserver
 
 import (
-	"bufio"
 	"io"
 	"log"
 	"net"
@@ -15,8 +14,13 @@ const ThreadPerConn = 5
 const cSendSize = 999
 const cChanSize = 10000
 const cTimeToFlush = time.Millisecond
+const cMsgPartsNum = 3
+
+var gIPData zu.ConcurrentMap
 
 func ServerStart(host string) {
+	gIPData = zu.CMapCreate()
+
 	log.Printf("Start server at %v\n", host)
 	listener, err := net.Listen("tcp", host)
 	if err != nil {
@@ -61,55 +65,13 @@ func ConnHandleCreate(conn net.Conn) *ConnHandle {
 		cntSent: 0,
 	}
 	s.readerReq, s.writerReq = io.Pipe()
+	gIPData.Set(conn.RemoteAddr().String(), s)
 
-	// Force Write
 	go s.LoopToFlush()
-
-	// Write msg
 	go s.LoopToWrite()
-
-	// Receive msg
 	go s.LoopToRead()
 
 	return s
-}
-
-func (s *ConnHandle) LoopToFlush() {
-	for {
-		time.Sleep(cTimeToFlush)
-		s.flush <- []byte{}
-	}
-}
-
-func (s *ConnHandle) LoopToWrite() {
-	for {
-		select {
-		case msg := <-s.chans:
-			s.slice = append(s.slice, msg...)
-			s.cntSent++
-			if s.cntSent >= cSendSize {
-				if len(s.slice) > 0 {
-					go s.conn.Write(s.slice)
-					s.slice = []byte{}
-					s.cntSent = 0
-				}
-			}
-		case <-s.flush:
-			if len(s.slice) > 0 {
-				go s.conn.Write(s.slice)
-				s.slice = []byte{}
-				s.cntSent = 0
-			}
-		}
-	}
-}
-
-func (s *ConnHandle) LoopToRead() {
-	reader := bufio.NewReader(s.readerReq)
-	for {
-		msg, _ := zu.ReadWithEnd(reader)
-		s.chans <- msg
-	}
 }
 
 func (s *ConnHandle) Handle() error {
