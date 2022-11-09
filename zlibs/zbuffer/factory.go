@@ -8,15 +8,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const CMaxCellPremake = 1       // Cell to premake for writing
-const CMaxCellCircle = 20       // Number of cell in circle
-const CMaxCellDelta = 19        // This is gap guard , processing and reusing data -> Delta = Circle - Premake
-const CMaxBuffSize = 1024 * 100 // Buffer size in cell
-const CMaxCpu = 1000            // For hashing cell
-
-const CTimeDiff = 100 * time.Millisecond      // Time to flush old cell
-const CTimeFlushSleep = 10 * time.Millisecond // Time to check need to flush old cell
-
 type Cell struct {
 	data      []byte // Buffer data
 	dataCount int    // Data count
