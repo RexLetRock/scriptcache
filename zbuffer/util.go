@@ -15,6 +15,7 @@ const cCellSize = 10000       // Number of cell for cpu use
 
 const cTimeLockSleep = 100 * time.Millisecond // Time to sleep before recheck
 const cTimeToFlush = 100 * time.Millisecond   // Time to flush when there is not new cell in long time
+const cTimeToFlushExit = 1000 * time.Millisecond
 
 var warn = logrus.Warn
 var warnf = logrus.Warnf

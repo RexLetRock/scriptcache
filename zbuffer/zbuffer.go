@@ -15,11 +15,14 @@ var CellPool = sync.Pool{
 type ZBuffer struct {
 	cells  [cCellSize]*ZCell // Cells that store data
 	handle func(data []byte) // Function use to handle data
+
+	chann chan *ZCell
 }
 
 func ZBufferCreate(handle func(data []byte)) *ZBuffer {
 	s := &ZBuffer{
 		handle: handle,
+		chann:  make(chan *ZCell, c1024),
 	}
 	go s.startBackgroundJob()
 	return s
@@ -51,37 +54,39 @@ func (s *ZBuffer) getCellViaPool(GID int64) *ZCell {
 	if p == nil {
 		s.cells[GID] = CellPool.Get().(*ZCell)
 		p = s.cells[GID]
+		s.chann <- p
 	}
 	return p
 }
 
 func (s *ZBuffer) startBackgroundJob() {
 	for {
-		time.Sleep(cTimeLockSleep)
-		s.Flush()
-	}
-}
-
-func (s *ZBuffer) Flush() {
-	curTime := ztime.UnixNanoNow()
-	for _, pCell := range s.cells {
-		go s.FlushCell(pCell, curTime)
-	}
-}
-
-func (s *ZBuffer) FlushCell(pCell *ZCell, curTime int64) {
-	if pCell == nil {
-		return
-	}
-
-	lastTime := atomic.LoadInt64(&pCell.wtime)
-	if lastTime > 0 && (curTime-lastTime) > int64(cTimeToFlush) {
-		pCell.lock()
-		if pCell.dataLen > 0 {
-			s.Handle(pCell.data[:pCell.dataLen])
-			pCell.dataLen = 0
+		select {
+		case pCell := <-s.chann:
+			go s.FlushCell(pCell)
+		default:
 		}
-		pCell.unlock()
+	}
+}
+
+func (s *ZBuffer) FlushCell(pCell *ZCell) {
+	for {
+		time.Sleep(cTimeLockSleep)
+		curTime := ztime.UnixNanoNow()
+		lastTime := atomic.LoadInt64(&pCell.wtime)
+		if (curTime - lastTime) > int64(cTimeToFlush) {
+			pCell.lock()
+			if pCell.dataLen > 0 {
+				s.Handle(pCell.data[:pCell.dataLen])
+				pCell.dataLen = 0
+				atomic.StoreInt64(&pCell.wtime, ztime.UnixNanoNow())
+			}
+			pCell.unlock()
+		}
+
+		if (curTime-lastTime) > int64(cTimeToFlushExit) && false {
+			break
+		}
 	}
 }
 

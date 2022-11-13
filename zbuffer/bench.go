@@ -9,7 +9,7 @@ import (
 	"github.com/RexLetRock/zlib/zbench"
 )
 
-const cRun = 100_000_000
+const cRun = 10_000_000
 const cCpu = 12
 const cMsg = "How are you today ?"
 const cSplit = "|||"
@@ -48,5 +48,16 @@ func Bench() {
 	})
 
 	time.Sleep(time.Second)
+	warnf("CountAll %v \n", Commaize(int64(countAll.Value())))
+}
+
+func ExampleSimple() {
+	handle := func(data []byte) {
+		a := strings.Split(string(data), cSplit)
+		countAll.Add(int64(len(a) - 1))
+	}
+	zbuffer := ZBufferCreate(handle)
+	zbuffer.Write([]byte("How are you today ?|||"))
+	time.Sleep(2 * time.Second)
 	warnf("CountAll %v \n", Commaize(int64(countAll.Value())))
 }
