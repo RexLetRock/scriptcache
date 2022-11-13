@@ -11,8 +11,7 @@ import (
 const Address = "127.0.0.1:9000"
 
 func Bench() {
-	logrus.Warnf("\n\n==== ZTCP ===\n")
-
+	logrus.Warnf("==== ZTCP ===\n")
 	go ztcpserver.ServerStart(Address)
 	time.Sleep(time.Second)
 	ztcpclient.ClientStart(Address)

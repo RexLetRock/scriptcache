@@ -11,7 +11,7 @@ Release v1.0.1:
   // zbuffer
   ✔ Buffer optimize @started(22-11-13 09:22) @done(22-11-13 13:34) @lasted(4h12m14s)
   ✔ Buffer handle leftover @started(22-11-13 13:34) @done(22-11-13 22:12) @lasted(8h38m35s)
-  ☐ Buffer handle CPU name and pool @started(22-11-13 22:13)
-  ☐ Buffer optimize CPU and RAM 
+  ✔ Buffer handle CPU name and pool @started(22-11-13 22:13) @done(22-11-14 00:38) @lasted(2h25m45s)
+  ✔ Buffer optimize CPU and RAM @started(22-11-14 00:38) @done(22-11-14 00:38) @lasted(49s)
   ☐ Buffer test
   ☐ Buffer cicd

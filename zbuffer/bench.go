@@ -9,8 +9,8 @@ import (
 	"github.com/RexLetRock/zlib/zbench"
 )
 
-const cRun = 10_000_000
-const cCpu = 3
+const cRun = 100_000_000
+const cCpu = 12
 const cMsg = "How are you today ?"
 const cSplit = "|||"
 
@@ -23,20 +23,30 @@ func Bench() {
 	}
 
 	zbuffer := ZBufferCreate(handle)
-	log("\n\n==== ZBUFFER ===\n")
-	log("WRITE ---msg---> BUFFER ---msg---> READER < " + cMsg + " >")
-	logf("Buffer size: %T, %d\n", zbuffer, unsafe.Sizeof(*zbuffer))
+	warn("==== ZBUFFER ===\n")
+	warn("WRITE ---msg---> BUFFER ---msg---> READER < " + cMsg + " >")
+	warnf("Buffer size: %T, %d\n", zbuffer, unsafe.Sizeof(*zbuffer))
 
 	zbench.Run(cRun, cCpu, func(i, j int) {
 		zbuffer.Write([]byte(cMsg + cSplit))
 	})
-	zbench.Run(cRun, cCpu, func(i, j int) {
-		zbuffer.Write([]byte(cMsg + cSplit))
-	})
+
 	zbench.Run(cRun, cCpu, func(i, j int) {
 		zbuffer.Write([]byte(cMsg + cSplit))
 	})
 
-	time.Sleep(1 * time.Second)
-	logf("CountAll %v \n", countAll.Value())
+	zbench.Run(cRun, cCpu, func(i, j int) {
+		zbuffer.Write([]byte(cMsg + cSplit))
+	})
+
+	zbench.Run(cRun, cCpu, func(i, j int) {
+		zbuffer.Write([]byte(cMsg + cSplit))
+	})
+
+	zbench.Run(cRun, cCpu, func(i, j int) {
+		zbuffer.Write([]byte(cMsg + cSplit))
+	})
+
+	time.Sleep(time.Second)
+	warnf("CountAll %v \n", Commaize(int64(countAll.Value())))
 }
