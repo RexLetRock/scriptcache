@@ -1,9 +1,17 @@
 22/10/2022
 Release v1.0.1:
+  // zforwarder - ztcp
   ✔ Broadcast mechanic @started(22-10-22 11:11) @done(22-10-24 09:22) @lasted(1d22h11m17s)
-  ☐ Broadcast test @started(22-11-03 00:09)
-  ☐ Broadcast polish
+  ✔ Broadcast test @started(22-11-03 00:09) @done(22-11-13 09:20) @lasted(1w3d9h11m58s)
+  ✔ Broadcast polish @started(22-11-13 09:21) @done(22-11-13 09:21) @lasted()
   ☐ Broadcast replicate
   ☐ Ticket replicate
   ☐ Embed ticket and broadcast to system
-  
+
+  // zbuffer
+  ✔ Buffer optimize @started(22-11-13 09:22) @done(22-11-13 13:34) @lasted(4h12m14s)
+  ✔ Buffer handle leftover @started(22-11-13 13:34) @done(22-11-13 22:12) @lasted(8h38m35s)
+  ☐ Buffer handle CPU name and pool @started(22-11-13 22:13)
+  ☐ Buffer optimize CPU and RAM 
+  ☐ Buffer test
+  ☐ Buffer cicd

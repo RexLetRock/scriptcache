@@ -9,12 +9,14 @@ import (
 
 const CMaxCellPremake = 1       // Cell to premake for writing
 const CMaxCellCircle = 20       // Number of cell in circle
-const CMaxCellDelta = 19        // This is gap guard , processing and reusing data -> Delta = Circle - Premake
-const CMaxBuffSize = 1024 * 100 // Buffer size in cell
-const CMaxCpu = 1000            // For hashing cell
+const CMaxCellDelta = 15        // This is gap guard , processing and reusing data -> Delta = Circle - Premake
+const CMaxBuffSize = 1024 * 100 // Buffer size in cell -> Make it faster and consume more memory
+const CMaxCpu = 100             // For hashing cell
 
-const CTimeDiff = 100 * time.Millisecond      // Time to flush old cell
-const CTimeFlushSleep = 10 * time.Millisecond // Time to check need to flush old cell
+const CTimeDiff = 100 * time.Millisecond       // Time to flush old cell
+const CTimeFlushSleep = 100 * time.Millisecond // Time to check need to flush old cell
+
+var log = logrus.Warn
 
 // fast count - fast get
 type Count32 int32
@@ -43,8 +45,4 @@ func (c *Count32) Inc() int32 {
 
 func (c *Count32) Get() int32 {
 	return atomic.LoadInt32((*int32)(c))
-}
-
-func log(args ...interface{}) {
-	logrus.Warn(args...)
 }

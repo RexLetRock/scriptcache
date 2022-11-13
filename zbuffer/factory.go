@@ -1,6 +1,7 @@
 package zbuffer
 
 import (
+	"runtime"
 	"sync/atomic"
 	"time"
 
@@ -33,7 +34,7 @@ type Factory struct {
 
 func FactoryCreate(index uint16, handle func(data []byte)) *Factory {
 	s := &Factory{
-		name:   0xFF,
+		name:   0xFFFF,
 		hash:   index % CMaxCpu,
 		Channs: make(chan *Cell, CMaxCellDelta),
 		Handle: handle,
@@ -67,6 +68,7 @@ func (s *Factory) Write(data []byte) {
 }
 
 func (s *Factory) CellGet() *Cell {
+	runtime.LockOSThread()
 	// Cell loop when firstime use this cell
 	if !s.start {
 		s.start = true
@@ -119,13 +121,14 @@ func (s *Factory) handleOldCellLoop() {
 
 // Flush cell after time, for cell that not full yet
 func (s *Factory) handleFlushCellLoop() {
+	return
 	time.Sleep(time.Second)
 	for {
 		time.Sleep(CTimeFlushSleep)
 		lastTime := atomic.LoadInt64(&s.Time)
 		if lastTime != 0 && ztime.UnixNanoNow()-lastTime > int64(CTimeDiff) {
 			s.CellGet()
-			s.Time = 0
+			atomic.StoreInt64(&s.Time, 0)
 		}
 	}
 }

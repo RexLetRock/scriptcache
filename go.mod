@@ -1,6 +1,6 @@
 module github.com/RexLetRock/scriptcache
 
-go 1.18
+go 1.19
 
 require (
 	github.com/RexLetRock/zlib v0.0.0-20220824093749-9d1b792eb9ea
