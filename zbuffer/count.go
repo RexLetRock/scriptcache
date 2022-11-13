@@ -1,4 +1,4 @@
-package zbufferv3
+package zbuffer
 
 import "sync/atomic"
 

@@ -3,14 +3,13 @@ package main
 import (
 	"time"
 
-	"github.com/RexLetRock/scriptcache/zbufferv3"
+	"github.com/RexLetRock/scriptcache/zbuffer"
 )
 
 const cWait = 1 * time.Second
 
 func main() {
 	// ztcp.Bench()
-	// zbufferv2.Bench()
-	zbufferv3.Bench()
+	zbuffer.Bench()
 	time.Sleep(cWait)
 }
