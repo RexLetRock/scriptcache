@@ -9,7 +9,7 @@ import (
 	"github.com/RexLetRock/zlib/zbench"
 )
 
-const cRun = 10_000_000
+const cRun = 100_000_000
 const cCpu = 12
 const cMsg = "How are you today ?"
 const cSplit = "|||"

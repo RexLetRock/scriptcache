@@ -15,3 +15,4 @@ Release v1.0.1:
   ✔ Buffer optimize CPU and RAM @started(22-11-14 00:38) @done(22-11-14 00:38) @lasted(49s)
   ☐ Buffer test
   ☐ Buffer cicd
+  ☐ Buffer clean old and make new goroutine flush cell
