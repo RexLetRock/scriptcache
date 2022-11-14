@@ -4,6 +4,7 @@ Release v1.0.1:
   ✔ Broadcast mechanic @started(22-10-22 11:11) @done(22-10-24 09:22) @lasted(1d22h11m17s)
   ✔ Broadcast test @started(22-11-03 00:09) @done(22-11-13 09:20) @lasted(1w3d9h11m58s)
   ✔ Broadcast polish @started(22-11-13 09:21) @done(22-11-13 09:21) @lasted()
+  ☐ Ticket system - broadcast system - polish @started(22-11-14 12:44)
   ☐ Broadcast replicate
   ☐ Ticket replicate
   ☐ Embed ticket and broadcast to system
@@ -13,6 +14,11 @@ Release v1.0.1:
   ✔ Buffer handle leftover @started(22-11-13 13:34) @done(22-11-13 22:12) @lasted(8h38m35s)
   ✔ Buffer handle CPU name and pool @started(22-11-13 22:13) @done(22-11-14 00:38) @lasted(2h25m45s)
   ✔ Buffer optimize CPU and RAM @started(22-11-14 00:38) @done(22-11-14 00:38) @lasted(49s)
-  ☐ Buffer test
+  ✔ Buffer test @started(22-11-14 12:44) @done(22-11-14 12:44) @lasted(5s)
+  ☐ Buffer testcase unitest - test coverage @started(22-11-14 12:44)
   ☐ Buffer cicd
   ☐ Buffer clean old and make new goroutine flush cell
+
+  // EVN technology report
+  ✔ EVN technology report @started(22-11-14 12:43) @done(22-11-14 12:43) @lasted(22s)
+  -> https://docs.google.com/document/d/1M_wo6EmaZnOjhf5rNdrrDCjYHoVJlJ-A5YOqW8KXbpY/edit
