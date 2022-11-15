@@ -13,10 +13,11 @@ var CellPool = sync.Pool{
 }
 
 type ZBuffer struct {
-	cells  [cCellSize]*ZCell // Cells that store data
-	handle func(data []byte) // Function use to handle data
+	cells      [cCellSize]*ZCell // Cells that store data
+	cellsFlush [cCellSize]int32
 
-	chann chan *ZCell
+	handle func(data []byte) // Function use to handle data
+	chann  chan *ZCell
 }
 
 func ZBufferCreate(handle func(data []byte)) *ZBuffer {
@@ -54,8 +55,14 @@ func (s *ZBuffer) getCellViaPool(GID int64) *ZCell {
 	if p == nil {
 		s.cells[GID] = CellPool.Get().(*ZCell)
 		p = s.cells[GID]
+		p.name = GID
+	}
+
+	if atomic.LoadInt32(&s.cellsFlush[GID]) == 0 {
+		atomic.StoreInt32(&s.cellsFlush[GID], 1)
 		s.chann <- p
 	}
+
 	return p
 }
 
@@ -65,11 +72,14 @@ func (s *ZBuffer) startBackgroundJob() {
 		case pCell := <-s.chann:
 			go s.FlushCell(pCell)
 		default:
+			skip()
 		}
 	}
 }
 
 func (s *ZBuffer) FlushCell(pCell *ZCell) {
+	defer func() { atomic.StoreInt32(&s.cellsFlush[pCell.name], 0) }()
+
 	for {
 		time.Sleep(cTimeLockSleep)
 		curTime := ztime.UnixNanoNow()
@@ -84,7 +94,9 @@ func (s *ZBuffer) FlushCell(pCell *ZCell) {
 			pCell.unlock()
 		}
 
-		if (curTime-lastTime) > int64(cTimeToFlushExit) && false {
+		// Expire flush cell not use anymore
+		if (curTime - lastTime) > int64(cTimeToFlushExit) {
+			// warnf("Expire %v", pCell.name)
 			break
 		}
 	}

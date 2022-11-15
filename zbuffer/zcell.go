@@ -8,8 +8,10 @@ import (
 type ZCell struct {
 	data    [cBuffSize]byte
 	dataLen int
-	wtime   int64
-	isrun   int32
+
+	name  int64
+	wtime int64
+	isrun int32
 }
 
 func (s *ZCell) lock() {

@@ -19,6 +19,7 @@ const cTimeToFlushExit = 1000 * time.Millisecond
 
 var warn = logrus.Warn
 var warnf = logrus.Warnf
+var skip = func() {}
 
 // Get ID of goroutine
 func getGID() int64 {
