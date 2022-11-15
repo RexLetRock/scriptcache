@@ -96,7 +96,6 @@ func (s *ZBuffer) FlushCell(pCell *ZCell) {
 
 		// Expire flush cell not use anymore
 		if (curTime - lastTime) > int64(cTimeToFlushExit) {
-			// warnf("Expire %v", pCell.name)
 			break
 		}
 	}

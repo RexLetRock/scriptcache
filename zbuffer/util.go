@@ -11,10 +11,10 @@ import (
 
 const c1024 = 1024            // For fashion 1024
 const cBuffSize = 100 * c1024 // Size of buffer
-const cCellSize = 10000       // Number of cell for cpu use
+const cCellSize = 1000        // Number of cell for cpu use
 
-const cTimeLockSleep = 100 * time.Millisecond // Time to sleep before recheck
-const cTimeToFlush = 100 * time.Millisecond   // Time to flush when there is not new cell in long time
+const cTimeLockSleep = 10 * time.Millisecond // Time to sleep before recheck flush
+const cTimeToFlush = 100 * time.Millisecond  // Time to flush when there is not new cell in long time
 const cTimeToFlushExit = 1000 * time.Millisecond
 
 var warn = logrus.Warn
