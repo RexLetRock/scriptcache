@@ -99,7 +99,7 @@ func ClientStart(addr string) {
 	logrus.Warnf("Send 50M msg - %v", msgf2)
 
 	groupID := "Hello how are you !!!"
-	nBroadcast := 2_000_000
+	nBroadcast := 1_000_000
 	zbench.Run(nBroadcast, 12, func(i, thread int) {
 		tcpClients.SendMessage(MessageBroadcast.Toa() + zu.FRAMESPLIT + groupID)
 	})

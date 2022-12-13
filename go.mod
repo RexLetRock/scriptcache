@@ -5,6 +5,7 @@ go 1.19
 require (
 	github.com/RexLetRock/zlib v0.0.0-20220824093749-9d1b792eb9ea
 	github.com/gobwas/ws v1.1.0
+	github.com/orcaman/concurrent-map/v2 v2.0.1
 	github.com/panjf2000/gnet v1.6.6
 	github.com/sirupsen/logrus v1.9.0
 	github.com/smallnest/epoller v0.0.0-20220519132708-4cf8edae2daf
